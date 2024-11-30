@@ -1,6 +1,13 @@
 # global
 .vs
 
+*.exe
+*.dll
+*.exp
+*.lib
+*.pdb
+
 # specific
+thirdparty/irrlicht-1.8.5/source/Irrlicht/obj
 thirdparty/wxWidgets-3.2.4/build/msw/vc_x64_mswuddll
 thirdparty/wxWidgets-3.2.4/lib/vc_x64_dll

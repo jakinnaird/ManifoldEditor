@@ -9,4 +9,7 @@ Open Visual Studio msw/ManifoldEditor.sln, select Debug or Release and build. On
 
 ## Thirdparty Licenses
 
+[Irrlicht 1.8.5](thirdparty/irrlicht-1.8.5/readme.txt)
+
 [wxWidgets 3.2.4](thirdparty/wxWidgets-3.2.4/docs/licence.txt)
+
