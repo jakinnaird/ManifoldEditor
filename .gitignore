@@ -6,8 +6,12 @@
 *.exp
 *.lib
 *.pdb
+*.ilk
+
 
 # specific
+thirdparty/freetype-2.13.3/objs/x64
+thirdparty/freetype-demos
 thirdparty/irrlicht-1.8.5/source/Irrlicht/obj
 thirdparty/wxWidgets-3.2.4/build/msw/vc_x64_mswuddll
 thirdparty/wxWidgets-3.2.4/lib/vc_x64_dll
