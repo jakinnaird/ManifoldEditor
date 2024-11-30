@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)..\..\sdk\bin\</OutDir>
+    <OutDir>$(SolutionDir)..\bin\</OutDir>
     <IntDir>$(SolutionDir)obj\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -106,16 +106,22 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;__WXDEBUG__;__WXMSW__;WINVER=0x0500;_WINDOWS;_IRR_STATIC_LIB_;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;__WXDEBUG__;__WXMSW__;WINVER=0x0500;_WINDOWS;WXUSINGDLL;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\thirdparty\freetype-2.12.1\include;..\thirdparty\irrlicht-1.8.5\include;..\thirdparty\ktkr3d;..\thirdparty\wxwidgets-3.2.4\include;..\thirdparty\wxwidgets-3.2.4\include\msvc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\thirdparty\freetype-2.13.3\include;..\thirdparty\irrlicht-1.8.5\include;..\thirdparty\ktkr3d;..\thirdparty\wxwidgets-3.2.4\include;..\thirdparty\wxwidgets-3.2.4\include\msvc;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\lib\msw;$(SolutionDir)..\lib\vc_x64_lib;$(SolutionDir)..\..\sdk\lib\msw;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\thirdparty\wxwidgets-3.2.4\lib\vc_x64_dll;..\thirdparty\irrlicht-1.8.5\lib\Win64-visualStudio;..\thirdparty\freetype-2.13.3\objs\x64\Debug;</AdditionalLibraryDirectories>
       <AdditionalDependencies>freetype.lib;Irrlicht.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>post-build.bat $(Configuration)</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Copy the needed DLLs</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -145,6 +151,7 @@
     <ClCompile Include="..\src\editor\MainWindow.cpp" />
     <ClCompile Include="..\src\editor\Map.cpp" />
     <ClCompile Include="..\src\editor\MapEditor.cpp" />
+    <ClCompile Include="..\src\editor\MpkFSHandler.cpp" />
     <ClCompile Include="..\src\editor\PackageManager.cpp" />
     <ClCompile Include="..\src\editor\PlayProcess.cpp" />
     <ClCompile Include="..\src\editor\Preferences.cpp" />
@@ -154,12 +161,11 @@
     <ClCompile Include="..\src\editor\ScriptEditor.cpp" />
     <ClCompile Include="..\src\editor\Serialize.cpp" />
     <ClCompile Include="..\src\editor\ViewPanel.cpp" />
-    <ClCompile Include="..\src\engine\CylinderSceneNode.cpp" />
-    <ClCompile Include="..\src\engine\MpkFSHandler.cpp" />
-    <ClCompile Include="..\src\engine\PathSceneNode.cpp" />
-    <ClCompile Include="..\src\engine\PlaneSceneNode.cpp" />
-    <ClCompile Include="..\src\engine\PlayerStartNode.cpp" />
-    <ClCompile Include="..\src\engine\SceneNodeFactory.cpp" />
+    <ClCompile Include="..\src\extend\CylinderSceneNode.cpp" />
+    <ClCompile Include="..\src\extend\PathSceneNode.cpp" />
+    <ClCompile Include="..\src\extend\PlaneSceneNode.cpp" />
+    <ClCompile Include="..\src\extend\PlayerStartNode.cpp" />
+    <ClCompile Include="..\src\extend\SceneNodeFactory.cpp" />
     <ClCompile Include="..\thirdparty\ktkr3d\CGUITTFont.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -174,6 +180,7 @@
     <ClInclude Include="..\src\editor\MainWindow.hpp" />
     <ClInclude Include="..\src\editor\Map.hpp" />
     <ClInclude Include="..\src\editor\MapEditor.hpp" />
+    <ClInclude Include="..\src\editor\MpkFSHandler.hpp" />
     <ClInclude Include="..\src\editor\PackageManager.hpp" />
     <ClInclude Include="..\src\editor\PlayProcess.hpp" />
     <ClInclude Include="..\src\editor\Preferences.hpp" />
@@ -183,11 +190,11 @@
     <ClInclude Include="..\src\editor\ScriptEditor.hpp" />
     <ClInclude Include="..\src\editor\Serialize.hpp" />
     <ClInclude Include="..\src\editor\ViewPanel.hpp" />
-    <ClInclude Include="..\src\engine\CylinderSceneNode.hpp" />
-    <ClInclude Include="..\src\engine\PathSceneNode.hpp" />
-    <ClInclude Include="..\src\engine\PlaneSceneNode.hpp" />
-    <ClInclude Include="..\src\engine\PlayerStartNode.hpp" />
-    <ClInclude Include="..\src\engine\SceneNodeFactory.hpp" />
+    <ClInclude Include="..\src\extend\CylinderSceneNode.hpp" />
+    <ClInclude Include="..\src\extend\PathSceneNode.hpp" />
+    <ClInclude Include="..\src\extend\PlaneSceneNode.hpp" />
+    <ClInclude Include="..\src\extend\PlayerStartNode.hpp" />
+    <ClInclude Include="..\src\extend\SceneNodeFactory.hpp" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

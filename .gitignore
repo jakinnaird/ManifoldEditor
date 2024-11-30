@@ -8,8 +8,8 @@
 *.pdb
 *.ilk
 
-
 # specific
+msw/obj
 thirdparty/freetype-2.13.3/objs/x64
 thirdparty/freetype-demos
 thirdparty/irrlicht-1.8.5/source/Irrlicht/obj
