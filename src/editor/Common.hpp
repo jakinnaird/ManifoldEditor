@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "wx/defs.h"
+#include <wx/defs.h>
 
 #define APP_NAME    "Manifold Editor"
 #define APP_VERSION "0.1.0"

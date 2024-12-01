@@ -7,13 +7,13 @@
 #include "MainWindow.hpp"
 #include "PlayProcess.hpp"
 
-#include "wx/confbase.h"
-#include "wx/log.h"
-#include "wx/sizer.h"
-#include "wx/stdpaths.h"
-#include "wx/txtstrm.h"
-#include "wx/wfstream.h"
-#include "wx/zipstrm.h"
+#include <wx/confbase.h>
+#include <wx/log.h>
+#include <wx/sizer.h>
+#include <wx/stdpaths.h>
+#include <wx/txtstrm.h>
+#include <wx/wfstream.h>
+#include <wx/zipstrm.h>
 
 PlayProcess::PlayProcess(MapEditor* parent)
 	: wxProcess(wxPROCESS_REDIRECT),

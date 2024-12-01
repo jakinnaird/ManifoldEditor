@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "wx/filename.h"
-#include "wx/stc/stc.h"
+#include <wx/filename.h>
+#include <wx/stc/stc.h>
 
 class EditorPage;
 

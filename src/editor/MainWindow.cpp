@@ -12,18 +12,18 @@
 #include "ProjectEditor.hpp"
 #include "Serialize.hpp"
 
-#include "wx/aboutdlg.h"
-#include "wx/artprov.h"
-#include "wx/busyinfo.h"
-#include "wx/confbase.h"
-#include "wx/filedlg.h"
-#include "wx/filesys.h"
-#include "wx/iconbndl.h"
-#include "wx/log.h"
-#include "wx/menu.h"
-#include "wx/msgdlg.h"
-#include "wx/stdpaths.h"
-#include "wx/textctrl.h"
+#include <wx/aboutdlg.h>
+#include <wx/artprov.h>
+#include <wx/busyinfo.h>
+#include <wx/confbase.h>
+#include <wx/filedlg.h>
+#include <wx/filesys.h>
+#include <wx/iconbndl.h>
+#include <wx/log.h>
+#include <wx/menu.h>
+#include <wx/msgdlg.h>
+#include <wx/stdpaths.h>
+#include <wx/textctrl.h>
 
 #include <stdexcept>
 

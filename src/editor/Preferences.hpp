@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "wx/dialog.h"
-#include "wx/propgrid/manager.h"
+#include <wx/dialog.h>
+#include <wx/propgrid/manager.h>
 
 class PreferencesWindow : public wxDialog
 {

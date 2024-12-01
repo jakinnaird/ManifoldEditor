@@ -7,9 +7,9 @@
 #include "Common.hpp"
 #include "Serialize.hpp"
 
-#include "wx/log.h"
-#include "wx/mstream.h"
-#include "wx/xml/xml.h"
+#include <wx/log.h>
+#include <wx/mstream.h>
+#include <wx/xml/xml.h>
 
 ISerializerFactory::serializers_t ISerializerFactory::ms_List;
 

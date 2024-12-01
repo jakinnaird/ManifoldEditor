@@ -6,11 +6,11 @@
 
 #include "Preferences.hpp"
 
-#include "wx/config.h"
-#include "wx/filename.h"
-#include "wx/log.h"
-#include "wx/sizer.h"
-#include "wx/stdpaths.h"
+#include <wx/config.h>
+#include <wx/filename.h>
+#include <wx/log.h>
+#include <wx/sizer.h>
+#include <wx/stdpaths.h>
 
 wxDEFINE_EVENT(ME_CONFIGCHANGED, wxCommandEvent);
 

@@ -11,9 +11,9 @@
 #include "MapEditor.hpp"
 #include "PackageManager.hpp"
 
-#include "wx/aui/aui.h"
-#include "wx/cmdproc.h"
-#include "wx/frame.h"
+#include <wx/aui/aui.h>
+#include <wx/cmdproc.h>
+#include <wx/frame.h>
 
 #include <memory>
 

@@ -9,8 +9,8 @@
 #include "Editor.hpp"
 #include "ProjectExplorer.hpp"
 
-#include "wx/aui/aui.h"
-#include "wx/filename.h"
+#include <wx/aui/aui.h>
+#include <wx/filename.h>
 
 #include <memory>
 

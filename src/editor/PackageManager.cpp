@@ -6,19 +6,19 @@
 
 #include "PackageManager.hpp"
 
-#include "wx/artprov.h"
-#include "wx/busyinfo.h"
-#include "wx/filedlg.h"
-#include "wx/filepicker.h"
-#include "wx/log.h"
-#include "wx/mimetype.h"
-#include "wx/msgdlg.h"
-#include "wx/sizer.h"
-#include "wx/stattext.h"
-#include "wx/textctrl.h"
-#include "wx/toolbar.h"
-#include "wx/wfstream.h"
-#include "wx/zipstrm.h"
+#include <wx/artprov.h>
+#include <wx/busyinfo.h>
+#include <wx/filedlg.h>
+#include <wx/filepicker.h>
+#include <wx/log.h>
+#include <wx/mimetype.h>
+#include <wx/msgdlg.h>
+#include <wx/sizer.h>
+#include <wx/stattext.h>
+#include <wx/textctrl.h>
+#include <wx/toolbar.h>
+#include <wx/wfstream.h>
+#include <wx/zipstrm.h>
 
 enum
 {

@@ -6,11 +6,11 @@
 
 #pragma once
 
-#include "wx/filename.h"
-#include "wx/mstream.h"
-#include "wx/string.h"
-#include "wx/wfstream.h"
-#include "wx/zipstrm.h"
+#include <wx/filename.h>
+#include <wx/mstream.h>
+#include <wx/string.h>
+#include <wx/wfstream.h>
+#include <wx/zipstrm.h>
 
 #include "irrlicht.h"
 

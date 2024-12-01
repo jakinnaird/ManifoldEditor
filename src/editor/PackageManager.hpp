@@ -6,11 +6,11 @@
 
 #pragma once
 
-#include "wx/cmdproc.h"
-#include "wx/dialog.h"
-#include "wx/filename.h"
-#include "wx/listctrl.h"
-#include "wx/stattext.h"
+#include <wx/cmdproc.h>
+#include <wx/dialog.h>
+#include <wx/filename.h>
+#include <wx/listctrl.h>
+#include <wx/stattext.h>
 
 #include <map>
 

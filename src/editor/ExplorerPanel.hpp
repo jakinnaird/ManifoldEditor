@@ -9,9 +9,9 @@
 #include "BrowserWindow.hpp"
 #include "ViewPanel.hpp"
 
-#include "wx/cmdproc.h"
-#include "wx/panel.h"
-#include "wx/treectrl.h"
+#include <wx/cmdproc.h>
+#include <wx/panel.h>
+#include <wx/treectrl.h>
 
 #include "irrlicht.h"
 

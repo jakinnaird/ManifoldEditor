@@ -9,7 +9,7 @@
 #include "../extend/PathSceneNode.hpp"
 #include "../extend/PlaneSceneNode.hpp"
 
-#include "wx/log.h"
+#include <wx/log.h>
 
 AddNodeCommand::AddNodeCommand(TOOLID toolId,
 	ExplorerPanel* explorerPanel,

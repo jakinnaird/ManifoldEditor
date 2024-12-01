@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include "wx/cmdproc.h"
-#include "wx/panel.h"
-#include "wx/propgrid/propgrid.h"
-#include "wx/toolbar.h"
+#include <wx/cmdproc.h>
+#include <wx/panel.h>
+#include <wx/propgrid/propgrid.h>
+#include <wx/toolbar.h>
 
 #include "Map.hpp"
 

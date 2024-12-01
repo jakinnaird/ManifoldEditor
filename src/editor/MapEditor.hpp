@@ -13,9 +13,9 @@
 #include "PropertyPanel.hpp"
 #include "ViewPanel.hpp"
 
-#include "wx/aui/aui.h"
-#include "wx/cmdproc.h"
-#include "wx/filename.h"
+#include <wx/aui/aui.h>
+#include <wx/cmdproc.h>
+#include <wx/filename.h>
 
 #include <memory>
 

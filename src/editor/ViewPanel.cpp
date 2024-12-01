@@ -14,14 +14,19 @@
 #include "../extend/PathSceneNode.hpp"
 #include "../extend/SceneNodeFactory.hpp"
 
-#include "wx/dcclient.h"
-#include "wx/intl.h"
-#include "wx/log.h"
-#include "wx/sizer.h"
+#include <wx/dcclient.h>
+#include <wx/intl.h>
+#include <wx/log.h>
+#include <wx/sizer.h>
 
 #include "irrUString.h"
 #include "CGUITTFont.h"
 #include "../source/Irrlicht/CSceneNodeAnimatorCameraFPS.h"
+
+#if defined(__WXGTK__)
+#include <gtk/gtk.h>
+#include <gdk/gdkx.h>
+#endif
 
 class IrrEventReceiver : public irr::IEventReceiver
 {
@@ -127,7 +132,7 @@ ViewPanel::~ViewPanel(void)
 	}
 
 	if (HasCapture())
-		ReleaseCapture();
+		ReleaseMouse();
 }
 
 irr::io::IFileSystem* ViewPanel::GetFileSystem(void)
@@ -339,11 +344,11 @@ void ViewPanel::OnResize(wxSizeEvent& event)
 		//m_VideoData.OpenGLWin32.HDc = this->GetHDC();
 		//m_VideoData.OpenGLWin32.HRc = m_Context->GetGLRC();
 #elif defined(__WXGTK__)
-#error TODO
 		// https://forums.wxwidgets.org/viewtopic.php?t=29850
+		// https://stackoverflow.com/a/14788489
 		GtkWidget* widget = GetHandle();
 		gtk_widget_realize(widget);
-		m_VideoData.OpenGLLinux.X11Window = GDK_WINDOW_XWINDOW(widget->window);
+		m_VideoData.OpenGLLinux.X11Window = gdk_x11_window_get_xid(gtk_widget_get_window(widget));;
 		params.WindowId = reinterpret_cast<void*>(m_VideoData.OpenGLLinux.X11Window);
 		//m_VideoData.OpenGLLinux.X11Context;
 		//m_VideoData.OpenGLLinux.X11Display;

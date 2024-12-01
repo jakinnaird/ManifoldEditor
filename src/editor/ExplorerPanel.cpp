@@ -9,7 +9,7 @@
 #include "MainWindow.hpp"
 #include "ViewPanel.hpp"
 
-#include "wx/sizer.h"
+#include <wx/sizer.h>
 
 ExplorerPanel::ExplorerPanel(wxWindow* parent, wxCommandProcessor& cmdProc,
 	BrowserWindow* browser)

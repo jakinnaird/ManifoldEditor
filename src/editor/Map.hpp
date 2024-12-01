@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "wx/filename.h"
+#include <wx/filename.h>
 
 #include "irrlicht.h"
 

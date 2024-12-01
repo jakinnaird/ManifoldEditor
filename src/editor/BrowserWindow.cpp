@@ -6,15 +6,15 @@
 
 #include "BrowserWindow.hpp"
 
-#include "wx/artprov.h"
-#include "wx/dcclient.h"
-#include "wx/filedlg.h"
-#include "wx/filefn.h"
-#include "wx/log.h"
-#include "wx/mstream.h"
-#include "wx/sizer.h"
-#include "wx/wfstream.h"
-#include "wx/zipstrm.h"
+#include <wx/artprov.h>
+#include <wx/dcclient.h>
+#include <wx/filedlg.h>
+#include <wx/filefn.h>
+#include <wx/log.h>
+#include <wx/mstream.h>
+#include <wx/sizer.h>
+#include <wx/wfstream.h>
+#include <wx/zipstrm.h>
 
 
 BrowserWindow::BrowserWindow(wxWindow* parent)

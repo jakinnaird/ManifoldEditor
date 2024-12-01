@@ -6,14 +6,14 @@
 
 #pragma once
 
-#include "wx/dialog.h"
-#include "wx/listbox.h"
-#include "wx/notebook.h"
-#include "wx/panel.h"
-#include "wx/scrolwin.h"
-#include "wx/statusbr.h"
-#include "wx/toolbar.h"
-#include "wx/treectrl.h"
+#include <wx/dialog.h>
+#include <wx/listbox.h>
+#include <wx/notebook.h>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include <wx/statusbr.h>
+#include <wx/toolbar.h>
+#include <wx/treectrl.h>
 
 #include <list>
 #include <map>

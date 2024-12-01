@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include "wx/filename.h"
-#include "wx/menu.h"
-#include "wx/panel.h"
+#include <wx/filename.h>
+#include <wx/menu.h>
+#include <wx/panel.h>
 
 class MainWindow;
 class BrowserWindow;

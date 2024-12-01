@@ -11,10 +11,10 @@
 #include "Map.hpp"
 #include "PropertyPanel.hpp"
 
-#include "wx/cmdproc.h"
-#include "wx/cursor.h"
-#include "wx/panel.h"
-#include "wx/timer.h"
+#include <wx/cmdproc.h>
+#include <wx/cursor.h>
+#include <wx/panel.h>
+#include <wx/timer.h>
 
 #include "irrlicht.h"
 #include "CGridSceneNode.h"

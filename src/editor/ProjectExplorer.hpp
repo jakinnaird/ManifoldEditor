@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include "wx/filename.h"
-#include "wx/panel.h"
-#include "wx/treectrl.h"
+#include <wx/filename.h>
+#include <wx/panel.h>
+#include <wx/treectrl.h>
 
 class ProjectEditor;
 

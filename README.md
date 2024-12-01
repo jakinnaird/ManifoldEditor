@@ -6,6 +6,19 @@
 
 Open Visual Studio msw/ManifoldEditor.sln, select Debug or Release and build. Only x64 platforms are currently supported.
 
+### Linux
+
+Install the required development packages
+
+```
+sudo apt install libwxgtk3.2-dev libfreetype-dev libgtk-3-dev libxxf86vm-dev
+```
+
+Create the needed libraries and compile the editor
+
+```
+cd linux && make
+```
 
 ## Thirdparty Licenses
 

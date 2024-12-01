@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include "wx/filefn.h"
-#include "wx/filesys.h"
-#include "wx/fs_filter.h"
-#include "wx/wfstream.h"
+#include <wx/filefn.h>
+#include <wx/filesys.h>
+#include <wx/fs_filter.h>
+#include <wx/wfstream.h>
 
 // seamlessly handle .mpk files (which are just zip archives)
 class MpkFSHandler : public wxFilterFSHandler

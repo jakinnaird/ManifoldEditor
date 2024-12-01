@@ -10,13 +10,13 @@
 #include "ProjectEditor.hpp"
 #include "ScriptEditor.hpp"
 
-#include "wx/accel.h"
-#include "wx/busyinfo.h"
-#include "wx/confbase.h"
-#include "wx/filedlg.h"
-#include "wx/log.h"
-#include "wx/msgdlg.h"
-#include "wx/sizer.h"
+#include <wx/accel.h>
+#include <wx/busyinfo.h>
+#include <wx/confbase.h>
+#include <wx/filedlg.h>
+#include <wx/log.h>
+#include <wx/msgdlg.h>
+#include <wx/sizer.h>
 
 ProjectEditor::ProjectEditor(MainWindow* parent, wxMenu* editMenu,
 	BrowserWindow* browserWindow, const wxFileName& fileName)

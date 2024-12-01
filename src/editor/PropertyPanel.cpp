@@ -12,10 +12,10 @@
 #include "../extend/PathSceneNode.hpp"
 #include "ViewPanel.hpp"
 
-#include "wx/artprov.h"
-#include "wx/log.h"
-#include "wx/propgrid/advprops.h"
-#include "wx/sizer.h"
+#include <wx/artprov.h>
+#include <wx/log.h>
+#include <wx/propgrid/advprops.h>
+#include <wx/sizer.h>
 
 #include <sstream>
 

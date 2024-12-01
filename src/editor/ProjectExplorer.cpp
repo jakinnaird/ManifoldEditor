@@ -8,16 +8,16 @@
 #include "ProjectEditor.hpp"
 #include "ProjectExplorer.hpp"
 
-#include "wx/filedlg.h"
-#include "wx/log.h"
-#include "wx/menu.h"
-#include "wx/msgdlg.h"
-#include "wx/mimetype.h"
-#include "wx/sizer.h"
-#include "wx/textdlg.h"
-#include "wx/wfstream.h"
-#include "wx/xml/xml.h"
-#include "wx/zipstrm.h"
+#include <wx/filedlg.h>
+#include <wx/log.h>
+#include <wx/menu.h>
+#include <wx/msgdlg.h>
+#include <wx/mimetype.h>
+#include <wx/sizer.h>
+#include <wx/textdlg.h>
+#include <wx/wfstream.h>
+#include <wx/xml/xml.h>
+#include <wx/zipstrm.h>
 
 #define XML_PROJECT_NAME	"ManifoldProject"
 #define XML_PACKAGE_NAME	"Package"

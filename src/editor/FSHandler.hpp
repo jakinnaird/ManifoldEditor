@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include "wx/bitmap.h"
-#include "wx/filesys.h"
-#include "wx/fs_filter.h"
-#include "wx/wfstream.h"
+#include <wx/bitmap.h>
+#include <wx/filesys.h>
+#include <wx/fs_filter.h>
+#include <wx/wfstream.h>
 
 #include "irrlicht.h"
 

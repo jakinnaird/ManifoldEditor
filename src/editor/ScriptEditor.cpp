@@ -7,8 +7,8 @@
 #include "ProjectEditor.hpp"
 #include "ScriptEditor.hpp"
 
-#include "wx/sizer.h"
-#include "wx/textdlg.h"
+#include <wx/sizer.h>
+#include <wx/textdlg.h>
 
 #define DEFAULT_LANGUAGE "<default>"
 

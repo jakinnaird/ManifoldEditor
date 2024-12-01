@@ -6,11 +6,11 @@
 
 #pragma once
 
-#include "wx/choice.h"
-#include "wx/dialog.h"
-#include "wx/filepicker.h"
-#include "wx/process.h"
-#include "wx/textctrl.h"
+#include <wx/choice.h>
+#include <wx/dialog.h>
+#include <wx/filepicker.h>
+#include <wx/process.h>
+#include <wx/textctrl.h>
 
 class MapEditor;
 

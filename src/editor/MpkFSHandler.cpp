@@ -6,9 +6,9 @@
 
 #include "MpkFSHandler.hpp"
 
-#include "wx/config.h"
-#include "wx/fs_arc.h"
-#include "wx/stdpaths.h"
+#include <wx/config.h>
+#include <wx/fs_arc.h>
+#include <wx/stdpaths.h>
 
 MpkFSHandler::MpkFSHandler(void)
 {

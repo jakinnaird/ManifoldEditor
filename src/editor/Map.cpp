@@ -15,8 +15,8 @@
 #include "../extend/PlayerStartNode.hpp"
 #include "../extend/PathSceneNode.hpp"
 
-#include "wx/log.h"
-#include "wx/stdpaths.h"
+#include <wx/log.h>
+#include <wx/stdpaths.h>
 
 Map::Map(void)
 	: m_SceneMgr(nullptr), m_MapRoot(nullptr)

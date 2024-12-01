@@ -10,10 +10,10 @@
 #include "MapEditor.hpp"
 #include "Serialize.hpp"
 
-#include "wx/busyinfo.h"
-#include "wx/confbase.h"
-#include "wx/log.h"
-#include "wx/msgdlg.h"
+#include <wx/busyinfo.h>
+#include <wx/confbase.h>
+#include <wx/log.h>
+#include <wx/msgdlg.h>
 
 MapEditor::MapEditor(MainWindow* parent, wxMenu* editMenu, 
     BrowserWindow* browserWindow, const wxFileName& mapName)

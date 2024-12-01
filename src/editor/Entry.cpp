@@ -10,15 +10,15 @@
 #include <wx/wx.h>
 #endif
 
-#include "wx/cmdline.h"
-#include "wx/fileconf.h"
-#include "wx/filefn.h"
-#include "wx/filesys.h"
-#include "wx/fs_arc.h"
-#include "wx/fs_filter.h"
-#include "wx/mimetype.h"
-#include "wx/stdpaths.h"
-#include "wx/sysopt.h"
+#include <wx/cmdline.h>
+#include <wx/fileconf.h>
+#include <wx/filefn.h>
+#include <wx/filesys.h>
+#include <wx/fs_arc.h>
+#include <wx/fs_filter.h>
+#include <wx/mimetype.h>
+#include <wx/stdpaths.h>
+#include <wx/sysopt.h>
 
 #include "Common.hpp"
 #include "FSHandler.hpp"
@@ -68,10 +68,12 @@ public:
 			if (config)
 				delete wxConfigBase::Set(config);
 
+#if defined(__WXMSW__)
 			if (GetComCtl32Version() >= 600 && ::wxDisplayDepth() >= 32)
 				wxSystemOptions::SetOption("msw.remap", 2);
 			else
 				wxSystemOptions::SetOption("msw.remap", 0);
+#endif
 
 #if defined(__WXOSX__)
 			wxSystemOptions::SetOption(wxOSX_FILEDIALOG_ALWAYS_SHOW_TYPES, 1);

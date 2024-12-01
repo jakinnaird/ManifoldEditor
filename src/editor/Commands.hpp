@@ -10,7 +10,7 @@
 #include "ExplorerPanel.hpp"
 #include "Map.hpp"
 
-#include "wx/cmdproc.h"
+#include <wx/cmdproc.h>
 #include "irrlicht.h"
 
 #include <list>
