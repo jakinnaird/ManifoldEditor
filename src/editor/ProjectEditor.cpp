@@ -18,6 +18,43 @@
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
 
+class IrrEventReceiver : public irr::IEventReceiver
+{
+public:
+	bool OnEvent(const irr::SEvent& event)
+	{
+		switch (event.EventType)
+		{
+		case irr::EET_LOG_TEXT_EVENT:
+		{
+			switch (event.LogEvent.Level)
+			{
+			case irr::ELL_DEBUG:
+				wxLogDebug(event.LogEvent.Text);
+				break;
+			case irr::ELL_INFORMATION:
+				wxLogMessage(event.LogEvent.Text);
+				break;
+			case irr::ELL_WARNING:
+				// an unset texture attribute has a value of '0' which throws a warning
+				if (wxString(event.LogEvent.Text).Cmp("Could not open file of texture: 0") == 0)
+					break;
+				wxLogWarning(event.LogEvent.Text);
+				break;
+			case irr::ELL_ERROR:
+				wxLogError(event.LogEvent.Text);
+				break;
+			case irr::ELL_NONE:
+				wxLogMessage(event.LogEvent.Text);
+				break;
+			}
+		} return true;
+		}
+
+		return false;
+	}
+};
+
 ProjectEditor::ProjectEditor(MainWindow* parent, wxMenu* editMenu,
 	BrowserWindow* browserWindow, const wxFileName& fileName)
 	: Editor(parent, editMenu, PROJECT_EDITOR, browserWindow), m_FileName(fileName)
@@ -75,6 +112,25 @@ ProjectEditor::ProjectEditor(MainWindow* parent, wxMenu* editMenu,
 		.Top());
 
 	m_AuiMgr.Update();
+
+	irr::SIrrlichtCreationParameters params;
+	params.DriverType = irr::video::EDT_NULL;
+	params.EventReceiver = new IrrEventReceiver;
+#if defined(_DEBUG)
+	params.LoggingLevel = irr::ELL_DEBUG;
+#endif
+
+	m_RenderDevice = irr::createDeviceEx(params);
+
+	// register the filesystem handler
+	m_RenderDevice->getFileSystem()->setFileListSystem(irr::io::FILESYSTEM_VIRTUAL);
+	if (!m_RenderDevice->getFileSystem()->addFileArchive(new IrrFSHandler))
+	{
+		wxLogError("Failed to mount base resources");
+		return;
+	}
+
+	m_Browser->SetRenderDevice(m_RenderDevice);
 
 	Load(m_FileName);
 

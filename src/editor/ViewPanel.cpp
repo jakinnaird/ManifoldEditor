@@ -4,6 +4,7 @@
 * Copyright (c) 2023 James Kinnaird
 */
 
+#include "BrowserWindow.hpp"
 #include "Commands.hpp"
 #include "Common.hpp"
 #include "FSHandler.hpp"
@@ -488,6 +489,9 @@ void ViewPanel::OnResize(wxSizeEvent& event)
 		}
 
 		m_ExplorerPanel->SetSceneManager(m_RenderDevice->getSceneManager());
+
+		// Add the render device to the browser window
+		m_Browser->SetRenderDevice(m_RenderDevice);
 
 		m_RefreshTimer.Start(40); // start refreshing the display, 25FPS
 		m_Init = true;

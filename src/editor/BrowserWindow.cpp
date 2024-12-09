@@ -44,6 +44,11 @@ BrowserWindow::~BrowserWindow(void)
 {
 }
 
+void BrowserWindow::SetRenderDevice(irr::IrrlichtDevice* renderDevice)
+{
+	m_Textures->SetRenderDevice(renderDevice);
+}
+
 void BrowserWindow::SwitchTo(int pageNumber)
 {
 	m_Notebook->SetSelection(pageNumber);
@@ -105,18 +110,7 @@ TextureBrowser::TextureBrowser(wxWindow* parent)
 	boxSizer->Add(m_StatusBar, wxSizerFlags(1).Expand());
 	this->SetSizerAndFit(boxSizer);
 
-	// did we pre-load any packages?
-	if (ms_Packages.size() > 0)
-	{
-		for (packagelist_t::iterator i = ms_Packages.begin();
-			i != ms_Packages.end(); ++i)
-		{
-			LoadPackage(*i, true);
-		}
-	}
-
-	ResizePreview();
-	ScrollTo(m_Selected);
+	m_RenderDevice = nullptr;
 
 	// configure the event handling
 	Bind(wxEVT_MENU, &TextureBrowser::OnToolAdd, this, wxID_NEW);
@@ -127,6 +121,31 @@ TextureBrowser::TextureBrowser(wxWindow* parent)
 
 TextureBrowser::~TextureBrowser(void)
 {
+	for (textures_t::iterator tex = m_Textures.begin();
+		tex != m_Textures.end(); ++tex)
+	{
+		(*tex).image->drop();
+	}
+}
+
+void TextureBrowser::SetRenderDevice(irr::IrrlichtDevice* renderDevice)
+{
+	m_RenderDevice = renderDevice;
+	if (m_RenderDevice)
+	{
+		// did we pre-load any packages?
+		if (ms_Packages.size() > 0)
+		{
+			for (packagelist_t::iterator i = ms_Packages.begin();
+				i != ms_Packages.end(); ++i)
+			{
+				LoadPackage(*i, true);
+			}
+		}
+
+		ResizePreview();
+		ScrollTo(m_Selected);
+	}
 }
 
 void TextureBrowser::AddPackage(const wxString& path)
@@ -169,31 +188,29 @@ bool TextureBrowser::LoadPackage(const wxString& path, bool preload)
 		wxZipEntry* entry = zipStream.GetNextEntry();
 		while (entry)
 		{
-			//wxFileName fn(entry->GetName());
 			wxString texPath(entry->GetName());
 
 			// support archives made on any platform
 			if (texPath.StartsWith(wxT("textures/")) ||
 				texPath.StartsWith(wxT("textures\\")))
 			{
-				// read the image data
-				wxMemoryOutputStream memStream;
-				zipStream.Read(memStream);
+				// build the image path
+				wxString imagePath(path);
+				imagePath.append(wxT(":"));
+				imagePath.append(texPath);
 
-				// convert to something we can use
-				wxMemoryInputStream imageStream(memStream);
-				if (!imageStream.IsOk())
-					continue;
-
-				// read the image
-				wxImage image(imageStream);
-				if (image.IsOk())
+				irr::io::path filename(imagePath.c_str().AsChar());
+				irr::video::IImage* image = m_RenderDevice->getVideoDriver()
+					->createImageFromFile(filename);
+				if (image)
 				{
-					// build the image path
-					wxString imagePath(path);
-					imagePath.append(wxT(":"));
-					imagePath.append(texPath);
-					AddImage(imagePath, image);
+					wxSize size(image->getDimension().Width,
+						image->getDimension().Height);
+					wxImage img(size, (unsigned char*)image->lock(), true);
+					image->unlock();
+
+					if (img.IsOk())
+						AddImage(imagePath, img, image);
 				}
 			}
 
@@ -239,13 +256,19 @@ void TextureBrowser::OnToolAdd(wxCommandEvent& event)
 	else
 	{
 		// load the image
-		wxFileInputStream stream(path);
-		if (stream.IsOk())
+		irr::io::path filename(path.c_str().AsChar());
+		irr::video::IImage* image = m_RenderDevice->getVideoDriver()
+			->createImageFromFile(filename);
+		if (image)
 		{
-			wxImage image(stream);
-			if (image.IsOk())
+			wxSize size(image->getDimension().Width,
+				image->getDimension().Height);
+			wxImage img(size, (unsigned char*)image->lock(), true);
+			image->unlock();
+
+			if (img.IsOk())
 			{
-				AddImage(path, image);
+				AddImage(path, img, image);
 				ResizePreview();
 
 				m_Selected = path;
@@ -311,7 +334,8 @@ void TextureBrowser::OnMouse(wxMouseEvent& event)
 	}
 }
 
-void TextureBrowser::AddImage(const wxString& path, wxImage& image)
+void TextureBrowser::AddImage(const wxString& path, wxImage& image,
+	irr::video::IImage* irrImage)
 {
 	TextureEntry entry;
 
@@ -326,6 +350,7 @@ void TextureBrowser::AddImage(const wxString& path, wxImage& image)
 	// add the image to the list
 	entry.path = path;
 	entry.bitmap = image;
+	entry.image = irrImage;
 
 	// calculate the click map
 	textures_t::reverse_iterator t = m_Textures.rbegin();

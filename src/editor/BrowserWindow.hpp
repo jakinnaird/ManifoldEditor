@@ -19,6 +19,8 @@
 #include <map>
 #include <vector>
 
+#include "irrlicht.h"
+
 class TextureBrowser;
 class ActorBrowser;
 
@@ -41,6 +43,8 @@ public:
 	BrowserWindow(wxWindow* parent);
 	~BrowserWindow(void);
 
+	void SetRenderDevice(irr::IrrlichtDevice* renderDevice);
+
 	void SwitchTo(int pageNumber);
 
 	const wxString& GetTexture(void);
@@ -57,6 +61,7 @@ private:
 		wxString path;
 		wxRect clickMap;
 		wxBitmap bitmap;
+		irr::video::IImage* image;
 	};
 
 private:
@@ -75,9 +80,13 @@ private:
 
 	wxString m_Selected;
 
+	irr::IrrlichtDevice* m_RenderDevice;
+
 public:
 	TextureBrowser(wxWindow* parent);
 	~TextureBrowser(void);
+
+	void SetRenderDevice(irr::IrrlichtDevice* renderDevice);
 
 	const wxString& GetSelection(void) { return m_Selected; }
 
@@ -92,7 +101,8 @@ private:
 	void OnToolOpen(wxCommandEvent& event);
 	void OnPaint(wxPaintEvent& event);
 	void OnMouse(wxMouseEvent& event);
-	void AddImage(const wxString& path, wxImage& image);
+	void AddImage(const wxString& path, wxImage& image,
+		irr::video::IImage* irrImage);
 	void ScrollTo(const wxString& image);
 };
 

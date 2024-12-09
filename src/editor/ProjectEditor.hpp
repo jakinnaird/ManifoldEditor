@@ -14,6 +14,8 @@
 
 #include <memory>
 
+#include "irrlicht.h"
+
 class ProjectEditor : public Editor
 {
 private:
@@ -23,6 +25,8 @@ private:
 	wxFileName m_FileName;
 
 	ProjectExplorer* m_Explorer;
+
+	irr::IrrlichtDevice* m_RenderDevice;
 
 public:
 	ProjectEditor(MainWindow* parent, wxMenu* editMenu, 
