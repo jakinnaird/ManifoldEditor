@@ -49,8 +49,9 @@ target_include_directories(ManifoldEditor PRIVATE
     ../../thirdparty/ktkr3d
     ../../thirdparty/irrlicht-1.8.5/include)
 
-target_compile_options(ManifoldEditor PRIVATE ${GTK3_CFLAGS_OTHER} -fPIC)
+target_compile_options(ManifoldEditor PRIVATE ${GTK3_CFLAGS_OTHER} -fPIE)
 SET(CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath='$ORIGIN'")
 
 target_link_directories(ManifoldEditor PUBLIC ../../bin)
-target_link_libraries(ManifoldEditor ${wxWidgets_LIBRARIES} ${FREETYPE_LIBRARIES} ${GTK3_LIBRARIES} Irrlicht)
+target_link_libraries(ManifoldEditor ${wxWidgets_LIBRARIES} ${FREETYPE_LIBRARIES} ${GTK3_LIBRARIES} 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../bin/libIrrlicht.so.1.8)
