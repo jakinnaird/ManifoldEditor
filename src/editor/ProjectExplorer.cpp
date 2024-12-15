@@ -7,6 +7,7 @@
 #include "Common.hpp"
 #include "ProjectEditor.hpp"
 #include "ProjectExplorer.hpp"
+#include "Serialize.hpp"
 
 #include <wx/filedlg.h>
 #include <wx/log.h>
@@ -14,6 +15,7 @@
 #include <wx/msgdlg.h>
 #include <wx/mimetype.h>
 #include <wx/sizer.h>
+#include <wx/stdpaths.h>
 #include <wx/textdlg.h>
 #include <wx/wfstream.h>
 #include <wx/xml/xml.h>
@@ -23,6 +25,7 @@
 #define XML_PACKAGE_NAME	"Package"
 #define XML_FILTER_NAME		"Filter"
 #define XML_FILE_NAME		"File"
+#define XML_MAP_NAME		"Map"
 
 class TreeItemData : public wxTreeItemData
 {
@@ -31,6 +34,7 @@ public:
 	{
 		NODE_PROJECT,
 		NODE_PACKAGE,
+		NODE_MAP,
 		NODE_FILTER,
 		NODE_FILE
 	} m_Type;
@@ -62,6 +66,7 @@ ProjectExplorer::ProjectExplorer(ProjectEditor* parent)
 	Bind(wxEVT_TREE_ITEM_RIGHT_CLICK, &ProjectExplorer::OnItemRightClick, this);
 	Bind(wxEVT_TREE_ITEM_ACTIVATED, &ProjectExplorer::OnItemActivated, this);
 	Bind(wxEVT_MENU, &ProjectExplorer::OnMenuNewPackage, this, MENU_NEWPACKAGE);
+	Bind(wxEVT_MENU, &ProjectExplorer::OnMenuNewMap, this, MENU_NEWMAP);
 	Bind(wxEVT_MENU, &ProjectExplorer::OnMenuAddNewItem, this, MENU_ADDNEWFILE);
 	Bind(wxEVT_MENU, &ProjectExplorer::OnMenuAddExistingItem, this, MENU_ADDEXISTINGFILE);
 	Bind(wxEVT_MENU, &ProjectExplorer::OnMenuAddFilter, this, MENU_ADDFILTER);
@@ -366,6 +371,7 @@ void ProjectExplorer::OnItemRightClick(wxTreeEvent& event)
 
 		popupMenu.AppendSeparator();
 		popupMenu.Append(MENU_NEWPACKAGE, _("New package"));
+		popupMenu.Append(MENU_NEWMAP, _("New map"));
 	}
 	else if (data->m_Type == TreeItemData::NODE_PACKAGE)
 	{
@@ -389,7 +395,8 @@ void ProjectExplorer::OnItemRightClick(wxTreeEvent& event)
 		addMenu->Append(MENU_ADDEXISTINGFILE, _("Existing Item"));
 		popupMenu.AppendSubMenu(addMenu, _("Add"));
 	}
-	else if (data->m_Type == TreeItemData::NODE_FILE)
+	else if (data->m_Type == TreeItemData::NODE_FILE ||
+		data->m_Type == TreeItemData::NODE_MAP)
 	{
 		popupMenu.Append(MENU_OPENFILE, _("Open"));
 	}
@@ -415,6 +422,15 @@ void ProjectExplorer::OnItemActivated(wxTreeEvent& event)
 		// open the file
 		m_Editor->OpenFile(data->m_FileName);
 	}
+	else if (data->m_Type == TreeItemData::NODE_MAP)
+	{
+		// launch a new editor instance
+		wxString cmd = wxStandardPaths::Get().GetExecutablePath();
+		cmd.append(wxT(" \""));
+		cmd.append(data->m_FileName.GetFullPath()); // ensure we create a new map editor
+		cmd.append(wxT("\""));
+		wxExecute(cmd, wxEXEC_ASYNC);
+	}
 	else
 		event.Skip(); // allow expand/collapse functions
 }
@@ -424,7 +440,7 @@ void ProjectExplorer::OnMenuNewPackage(wxCommandEvent& event)
 	wxFileDialog newPackage(GetParent(),
 		_("Add new package"), wxEmptyString,
 		_("untitled.mpk"), 
-		_("Manifold Engine Package (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip"),
+		_("Manifold Archive Package (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip"),
 		wxFD_SAVE);
 
 	if (newPackage.ShowModal() == wxID_CANCEL)
@@ -435,6 +451,27 @@ void ProjectExplorer::OnMenuNewPackage(wxCommandEvent& event)
 		OnNewMpkPackage(fileName);
 	else if (fileName.GetExt().CompareTo(wxT("zip"), wxString::ignoreCase) == 0)
 		OnNewZipPackage(fileName);
+
+	m_Changed = true;
+}
+
+void ProjectExplorer::OnMenuNewMap(wxCommandEvent& event)
+{
+	wxFileDialog newMap(GetParent(),
+		_("Add new map"), wxEmptyString,
+		wxEmptyString,
+		ISerializerFactory::BuildFilter(),
+		wxFD_SAVE);
+
+	if (newMap.ShowModal() == wxID_CANCEL)
+		return;
+
+	wxFileName fileName(newMap.GetPath());
+	TreeItemData* data = new TreeItemData(TreeItemData::NODE_MAP);
+	data->m_FileName = fileName;
+	wxTreeItemId mapId = m_Explorer->AppendItem(
+		m_Root, fileName.GetFullName(), -1, -1, data);
+	m_Explorer->EnsureVisible(mapId);
 
 	m_Changed = true;
 }

@@ -411,7 +411,7 @@ void PackageManager::OnToolOpen(wxCommandEvent& event)
 
 	wxFileDialog openDialog(this,
 		_("Open package"), wxEmptyString, wxEmptyString,
-		_("Manifold Engine (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip"),
+		_("Manifold Archive Package (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip"),
 		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 	if (openDialog.ShowModal() == wxID_CANCEL)
 		return; // not opening today
@@ -498,7 +498,7 @@ void PackageManager::OnToolSaveAs(wxCommandEvent& event)
 {
 	wxFileDialog saveDialog(this,
 		_("Save Package As..."), wxEmptyString, m_FileText->GetLabelText(),
-		_("Manifold Engine (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip"),
+		_("Manifold Archive Package (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip"),
 		wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (saveDialog.ShowModal() == wxID_CANCEL)
 		return; // not saving today

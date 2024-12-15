@@ -46,6 +46,7 @@ private:
 	void OnItemActivated(wxTreeEvent& event);
 
 	void OnMenuNewPackage(wxCommandEvent& event);
+	void OnMenuNewMap(wxCommandEvent& event);
 	void OnMenuAddNewItem(wxCommandEvent& event);
 	void OnMenuAddExistingItem(wxCommandEvent& event);
 	void OnMenuAddFilter(wxCommandEvent& event);

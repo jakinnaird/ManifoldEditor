@@ -259,7 +259,7 @@ bool ProjectEditor::OnSaveAs(void)
 	wxFileDialog saveDialog(this,
 		_("Save Project As..."), projectPath,
 		m_Explorer->GetFilename().GetFullName(),
-		_("Manifold Editor Projects (*.mep)|*.mep"),
+		_("Manifold Editor Project (*.mep)|*.mep"),
 		wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (saveDialog.ShowModal() == wxID_CANCEL)
 		return false; // not saving today

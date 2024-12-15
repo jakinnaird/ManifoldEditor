@@ -117,11 +117,11 @@ MainWindow::MainWindow(void)
     wxAuiToolBar* fileTools = new wxAuiToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
         wxAUI_TB_HORIZONTAL | wxAUI_TB_HORZ_LAYOUT);
     fileTools->AddTool(wxID_OPEN, _("Open"), wxArtProvider::GetBitmap(wxART_FILE_OPEN),
-        _("Open map"));
+        _("Open..."));
     fileTools->AddTool(wxID_SAVE, _("Save"), wxArtProvider::GetBitmap(wxART_FILE_SAVE),
-        _("Save map"));
+        _("Save..."));
     fileTools->AddTool(wxID_SAVEAS, _("Save As"), wxArtProvider::GetBitmap(wxART_FILE_SAVE_AS),
-        _("Save map as"));
+        _("Save as..."));
     fileTools->AddSeparator();
     fileTools->AddTool(wxID_UNDO, _("Undo"), wxArtProvider::GetBitmap(wxART_UNDO),
         _("Undo"));
@@ -232,11 +232,16 @@ void MainWindow::LoadFile(const wxString& filePath)
             }
             else
             {
+                // if we are loaded with a valid file name set, even if it doesn't exist
+                // play nicely with saving
+                if (fileName.GetFullName().StartsWith(wxT("*.")))
+                    fileName = wxFileName();
+
                 // default to a new map editor
                 if (m_ActiveEditor)
-                    m_ActiveEditor->Load(wxFileName());
+                    m_ActiveEditor->Load(/*wxFileName()*/fileName);
                 else
-                    m_ActiveEditor = new MapEditor(this, m_EditMenu, m_Browser, wxFileName());
+                    m_ActiveEditor = new MapEditor(this, m_EditMenu, m_Browser, /*wxFileName()*/fileName);
             }
         }
     }
@@ -368,7 +373,7 @@ void MainWindow::OnFileOpenProject(wxCommandEvent& event)
 
     wxFileDialog openDialog(this,
         _("Open project"), wxEmptyString, wxEmptyString,
-        _("Manifold Engine Projects (*.mep)|*.mep"),
+        _("Manifold Editor Project (*.mep)|*.mep"),
         wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (openDialog.ShowModal() == wxID_CANCEL)
         return; // not opening today
@@ -402,7 +407,7 @@ void MainWindow::OnFileOpen(wxCommandEvent& event)
             m_ActiveEditor->OnSave();
     }
 
-    wxString fileFilter(_("Manifold Engine Projects (*.mep)|*.mep"));
+    wxString fileFilter(_("Manifold Editor Project (*.mep)|*.mep"));
     fileFilter.Append(wxT("|"));
     fileFilter.Append(ISerializerFactory::BuildFilter());
 

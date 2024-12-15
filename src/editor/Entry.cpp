@@ -88,7 +88,7 @@ public:
 					_("Irrlicht Scene (*.irr)|*.irr"))));
 			ISerializerFactory::AddSerializer(wxT("mmp"),
 				std::shared_ptr<ISerializerFactory>(new SerializerFactory<MmpSave, MmpLoad>(
-					_("Manifold Engine Map (*.mmp)|*.mmp"))));
+					_("Manifold Editor Map (*.mmp)|*.mmp"))));
 
 			// register all the engine MIME types
 			static wxFileTypeInfo engineMimeTypes[] = 
@@ -137,10 +137,10 @@ public:
 			mainWindow->Show(true);
 			SetTopWindow(mainWindow);
 			
-			//// default to a map editor
-			wxString fileToLoad(wxT("*.mmp"));
+			// default to a map editor
+			//wxString fileToLoad(wxT("*.mmp"));
 			// default to a project editor
-			//wxString fileToLoad(wxT("*.mep"));
+			wxString fileToLoad(wxT("*.mep"));
 
 			// see if we want to load a file
 			wxCmdLineParser params(wxApp::argc, wxApp::argv);

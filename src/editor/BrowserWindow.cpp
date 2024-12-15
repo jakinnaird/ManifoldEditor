@@ -286,7 +286,7 @@ void TextureBrowser::OnToolOpen(wxCommandEvent& event)
 {
 	wxFileDialog openFile(this, _("Select image file"),
 		wxEmptyString, wxEmptyString,
-		_("Manifold Engine (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip"),
+		_("Manifold Archive Package (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip"),
 		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 	if (openFile.ShowModal() == wxID_CANCEL)
 		return;
