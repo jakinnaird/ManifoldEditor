@@ -33,6 +33,8 @@ public:
 		BrowserWindow* browserWindow, const wxFileName& fileName);
 	~ProjectEditor(void);
 
+	const wxFileName& GetFileName(void) { return m_FileName; }
+
 	// open a new editor window for the supplied file
 	void OpenFile(const wxFileName& fileName);
 
@@ -41,7 +43,7 @@ public:
 
 	void OnUndo(void);
 	void OnRedo(void);
-	bool OnSave(void);
+	bool OnSave(bool allFiles);
 	bool OnSaveAs(void);
 	void OnCut(void);
 	void OnCopy(void);

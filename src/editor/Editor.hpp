@@ -45,7 +45,7 @@ public:
 
 	virtual void OnUndo(void) = 0;
 	virtual void OnRedo(void) = 0;
-	virtual bool OnSave(void) = 0;
+	virtual bool OnSave(bool allFiles) = 0;
 	virtual bool OnSaveAs(void) = 0;
 	virtual void OnCut(void) = 0;
 	virtual void OnCopy(void) = 0;

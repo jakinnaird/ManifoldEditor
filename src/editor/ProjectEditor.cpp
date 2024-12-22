@@ -182,22 +182,23 @@ void ProjectEditor::Load(const wxFileName& filePath)
 
 	m_Explorer->Load(filePath);
 
-	if (filePath.IsOk())
-	{
-		m_Title = filePath.GetFullName();
-	}
-	else
-	{
-		m_Title.assign(_("untitled"));
-	}
+	m_Title = filePath.GetFullName();
+	//if (filePath.IsOk())
+	//{
+	//	m_Title = filePath.GetFullName();
+	//}
+	//else
+	//{
+	//	m_Title.assign(_("untitled"));
+	//}
 
 	m_FileName = filePath;
 }
 
 bool ProjectEditor::HasChanged(void)
 {
-	if (m_Explorer->HasChanged())
-		return true;
+	//if (m_Explorer->HasChanged())
+	//	return true;
 
 	for (size_t i = 0; i < m_Pages->GetPageCount(); ++i)
 	{
@@ -230,57 +231,69 @@ void ProjectEditor::OnRedo(void)
 	}
 }
 
-bool ProjectEditor::OnSave(void)
+bool ProjectEditor::OnSave(bool allFiles)
 {
-	if (!m_Explorer->HasFilename())
-		return OnSaveAs();
+	//if (!m_Explorer->HasFilename())
+	//	return OnSaveAs();
 
-	wxBusyInfo wait(wxBusyInfoFlags()
-		.Parent(this)
-		.Title(_("Saving project"))
-		.Text(_("Please wait..."))
-		.Foreground(*wxBLACK)
-		.Background(*wxWHITE));
+	//wxBusyInfo wait(wxBusyInfoFlags()
+	//	.Parent(this)
+	//	.Title(_("Saving project"))
+	//	.Text(_("Please wait..."))
+	//	.Foreground(*wxBLACK)
+	//	.Background(*wxWHITE));
 
-	m_Explorer->Save(wxFileName());
+	//m_Explorer->Save(wxFileName());
 
-	// process the active page
-	EditorPage* page = dynamic_cast<EditorPage*>(m_Pages->GetCurrentPage());
-	if (page && page->HasChanged())
-		page->Save();
+	if (allFiles)
+	{
+		for (size_t i = 0; i < m_Pages->GetPageCount(); ++i)
+		{
+			EditorPage* page = dynamic_cast<EditorPage*>(m_Pages->GetPage(i));
+			if (page && page->HasChanged())
+				page->Save();
+		}
+	}
+	else
+	{
+		// process the active page
+		EditorPage* page = dynamic_cast<EditorPage*>(m_Pages->GetCurrentPage());
+		if (page && page->HasChanged())
+			page->Save();
+	}
 
-	m_Title = m_Explorer->GetFilename().GetFullName();
+	//m_Title = m_Explorer->GetFilename().GetFullName();
 	return true;
 }
 
 bool ProjectEditor::OnSaveAs(void)
 {
-	wxString projectPath = m_Explorer->GetFilename().GetPath();
-	wxFileDialog saveDialog(this,
-		_("Save Project As..."), projectPath,
-		m_Explorer->GetFilename().GetFullName(),
-		_("Manifold Editor Project (*.mep)|*.mep"),
-		wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-	if (saveDialog.ShowModal() == wxID_CANCEL)
-		return false; // not saving today
+	//wxString projectPath = m_Explorer->GetFilename().GetPath();
+	//wxFileDialog saveDialog(this,
+	//	_("Save Project As..."), projectPath,
+	//	m_Explorer->GetFilename().GetFullName(),
+	//	_("Manifold Editor Project (*.mep)|*.mep"),
+	//	wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	//if (saveDialog.ShowModal() == wxID_CANCEL)
+	//	return false; // not saving today
 
-	wxFileName fileName(saveDialog.GetPath());
+	//wxFileName fileName(saveDialog.GetPath());
 
-	wxBusyInfo wait(wxBusyInfoFlags()
-		.Parent(this)
-		.Title(_("Saving project"))
-		.Text(_("Please wait..."))
-		.Foreground(*wxBLACK)
-		.Background(*wxWHITE));
+	//wxBusyInfo wait(wxBusyInfoFlags()
+	//	.Parent(this)
+	//	.Title(_("Saving project"))
+	//	.Text(_("Please wait..."))
+	//	.Foreground(*wxBLACK)
+	//	.Background(*wxWHITE));
 
-	m_Explorer->Save(fileName);
+	//m_Explorer->Save(fileName);
 
-	// process the active page
-	EditorPage* page = dynamic_cast<EditorPage*>(m_Pages->GetCurrentPage());
-	if (page && page->HasChanged())
-		page->Save();
+	//// process the active page
+	//EditorPage* page = dynamic_cast<EditorPage*>(m_Pages->GetCurrentPage());
+	//if (page && page->HasChanged())
+	//	page->Save();
 
-	m_Title = m_Explorer->GetFilename().GetFullName();
+	//m_Title = m_Explorer->GetFilename().GetFullName();
 	return true;
 }
 

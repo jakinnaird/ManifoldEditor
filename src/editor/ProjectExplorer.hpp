@@ -19,8 +19,6 @@ private:
 	wxTreeCtrl* m_Explorer;
 	wxTreeItemId m_Root;
 
-	bool m_Changed;
-
 public:
 	ProjectExplorer(ProjectEditor* parent);
 	~ProjectExplorer(void);
@@ -30,7 +28,6 @@ public:
 
 	void Clear(void);
 
-	bool HasChanged(void);
 	bool HasFilename(void);
 	const wxFileName& GetFilename(void);
 
@@ -40,6 +37,8 @@ private:
 
 	void BuildPackage(const wxTreeItemId& package);
 	void CleanPackage(const wxTreeItemId& package);
+
+	void OpenMap(const wxFileName& fileName);
 
 private:
 	void OnItemRightClick(wxTreeEvent& event);

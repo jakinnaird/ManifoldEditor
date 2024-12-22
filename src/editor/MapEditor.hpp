@@ -49,7 +49,7 @@ public:
 
 	void OnUndo(void);
 	void OnRedo(void);
-	bool OnSave(void);
+	bool OnSave(bool allFiles = false);
 	bool OnSaveAs(void);
 	void OnCut(void);
 	void OnCopy(void);

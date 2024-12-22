@@ -253,7 +253,11 @@ void MainWindow::LoadFile(const wxString& filePath)
 
 void MainWindow::SetCaption(const wxString& fileName)
 {
-    SetTitle(wxString::Format(wxT("%s [%s]"), APP_NAME, fileName));
+    wxString title(wxT(APP_NAME));
+    if (!fileName.empty())
+        title.append(wxString::Format(wxT(" [%s]"), fileName));
+
+    SetTitle(title);
 }
 
 void MainWindow::UpdateFrameTime(int fps)
@@ -287,7 +291,7 @@ void MainWindow::OnClose(wxCloseEvent& event)
             }
 
             if (result == wxID_YES)
-                m_ActiveEditor->OnSave();
+                m_ActiveEditor->OnSave(true);
         }
     }
 
@@ -310,6 +314,25 @@ void MainWindow::OnFileNewMap(wxCommandEvent& event)
 
 void MainWindow::OnFileNewProject(wxCommandEvent& event)
 {
+    // are we already a project editor and do we have an active project?
+    if (m_ActiveEditor && m_ActiveEditor->GetType() == Editor::PROJECT_EDITOR)
+    {
+        if (!dynamic_cast<ProjectEditor*>(m_ActiveEditor)->GetFileName().IsOk())
+        {
+            wxFileDialog saveDialog(this,
+                _("New Project..."), wxEmptyString,
+                wxEmptyString, wxT("Manifold Project (*.mep)|*.mep"),
+                wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+            if (saveDialog.ShowModal() == wxID_CANCEL)
+                return; // not saving today
+
+            wxFileName fileName(saveDialog.GetPath());
+            m_ActiveEditor->Load(fileName);
+            return;
+        }
+    }
+ 
+    // launch a new Project Editor
     // get the executable path
     wxString cmd = wxStandardPaths::Get().GetExecutablePath();
     cmd.append(wxT(" *.mep")); // ensure we create a new package editor
@@ -331,7 +354,7 @@ void MainWindow::OnFileOpenMap(wxCommandEvent& event)
             return; // go no further
 
         if (result == wxID_YES)
-            m_ActiveEditor->OnSave();
+            m_ActiveEditor->OnSave(true);
     }
 
     wxFileDialog openDialog(this,
@@ -368,7 +391,7 @@ void MainWindow::OnFileOpenProject(wxCommandEvent& event)
             return; // go no further
 
         if (result == wxID_YES)
-            m_ActiveEditor->OnSave();
+            m_ActiveEditor->OnSave(true);
     }
 
     wxFileDialog openDialog(this,
@@ -404,7 +427,7 @@ void MainWindow::OnFileOpen(wxCommandEvent& event)
             return; // go no further
 
         if (result == wxID_YES)
-            m_ActiveEditor->OnSave();
+            m_ActiveEditor->OnSave(true);
     }
 
     wxString fileFilter(_("Manifold Editor Project (*.mep)|*.mep"));
@@ -423,7 +446,7 @@ void MainWindow::OnFileOpen(wxCommandEvent& event)
 
 void MainWindow::OnFileSave(wxCommandEvent& event)
 {
-    if (m_ActiveEditor && m_ActiveEditor->OnSave())
+    if (m_ActiveEditor && m_ActiveEditor->OnSave(true))
     {
         SetCaption(m_ActiveEditor->GetTitle());
     }
@@ -449,7 +472,7 @@ void MainWindow::OnFileClose(wxCommandEvent& event)
             return; // go no further
 
         if (result == wxID_YES)
-            m_ActiveEditor->OnSave();
+            m_ActiveEditor->OnSave(true);
     }
 
     // what kind of default are we and recreate it

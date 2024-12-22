@@ -53,15 +53,10 @@ ProjectExplorer::ProjectExplorer(ProjectEditor* parent)
 {
 	m_Explorer = new wxTreeCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
 		wxTR_HAS_BUTTONS | wxTR_MULTIPLE);
-	TreeItemData* data = new TreeItemData(TreeItemData::NODE_PROJECT);
-	m_Root = m_Explorer->AddRoot(_("untitled"), -1, -1, data);
-	m_Explorer->Expand(m_Root);
 
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(m_Explorer, wxSizerFlags(1).Expand());
 	this->SetSizerAndFit(sizer);
-
-	m_Changed = false;
 
 	Bind(wxEVT_TREE_ITEM_RIGHT_CLICK, &ProjectExplorer::OnItemRightClick, this);
 	Bind(wxEVT_TREE_ITEM_ACTIVATED, &ProjectExplorer::OnItemActivated, this);
@@ -84,6 +79,9 @@ ProjectExplorer::~ProjectExplorer(void)
 
 void ProjectExplorer::Save(const wxFileName& fileName)
 {
+	if (!fileName.IsOk()) // we are starting new
+		return;
+
 	// pick the right output file name
 	TreeItemData* data = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(m_Root));
 	wxFileName outFileName(fileName);
@@ -100,48 +98,62 @@ void ProjectExplorer::Save(const wxFileName& fileName)
 
 	// walk the tree
 	wxTreeItemIdValue rootCookie;
-	wxTreeItemId package = m_Explorer->GetFirstChild(m_Root, rootCookie);
-	while (package.IsOk())
+	wxTreeItemId treeItem = m_Explorer->GetFirstChild(m_Root, rootCookie);
+	while (treeItem.IsOk())
 	{
-		TreeItemData* pkgData = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(package));
-		if (pkgData->m_FileName.IsAbsolute())
-			pkgData->m_FileName.MakeRelativeTo(outFileName.GetPath());
-
-		wxXmlNode* pkgNode = new wxXmlNode(root, wxXML_ELEMENT_NODE, XML_PACKAGE_NAME);
-		pkgNode->AddAttribute("Path", pkgData->m_FileName.GetFullPath());
-
-		wxTreeItemIdValue filterCookie;
-		wxTreeItemId filter = m_Explorer->GetFirstChild(package, filterCookie);
-		while (filter.IsOk())
+		TreeItemData* itemData = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(treeItem));
+		if (itemData->m_Type == TreeItemData::NODE_PACKAGE)
 		{
-			TreeItemData* filterData = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(filter));
+			if (itemData->m_FileName.IsAbsolute())
+				itemData->m_FileName.MakeRelativeTo(outFileName.GetPath());
 
-			wxXmlNode* filterNode = new wxXmlNode(pkgNode, wxXML_ELEMENT_NODE, XML_FILTER_NAME);
-			filterNode->AddAttribute("Name", m_Explorer->GetItemText(filter));
-			filterNode->AddAttribute("FileTypes", filterData->m_Filter);
+			wxXmlNode* pkgNode = new wxXmlNode(root, wxXML_ELEMENT_NODE, XML_PACKAGE_NAME);
+			pkgNode->AddAttribute("Path", itemData->m_FileName.GetFullPath());
 
-			wxTreeItemIdValue fileCookie;
-			wxTreeItemId file = m_Explorer->GetFirstChild(filter, fileCookie);
-			while (file.IsOk())
+			wxTreeItemIdValue filterCookie;
+			wxTreeItemId filter = m_Explorer->GetFirstChild(treeItem, filterCookie);
+			while (filter.IsOk())
 			{
-				TreeItemData* fileData = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(file));
-				if (fileData->m_FileName.IsAbsolute())
-					fileData->m_FileName.MakeRelativeTo(outFileName.GetPath());
+				TreeItemData* filterData = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(filter));
 
-				wxXmlNode* fileNode = new wxXmlNode(filterNode, wxXML_ELEMENT_NODE, XML_FILE_NAME);
-				fileNode->AddAttribute("Path", fileData->m_FileName.GetFullPath());
+				wxXmlNode* filterNode = new wxXmlNode(pkgNode, wxXML_ELEMENT_NODE, XML_FILTER_NAME);
+				filterNode->AddAttribute("Name", m_Explorer->GetItemText(filter));
+				filterNode->AddAttribute("FileTypes", filterData->m_Filter);
 
-				file = m_Explorer->GetNextChild(filter, fileCookie);
+				wxTreeItemIdValue fileCookie;
+				wxTreeItemId file = m_Explorer->GetFirstChild(filter, fileCookie);
+				while (file.IsOk())
+				{
+					TreeItemData* fileData = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(file));
+					if (fileData->m_FileName.IsAbsolute())
+						fileData->m_FileName.MakeRelativeTo(outFileName.GetPath());
+
+					wxXmlNode* fileNode = new wxXmlNode(filterNode, wxXML_ELEMENT_NODE, XML_FILE_NAME);
+					fileNode->AddAttribute("Path", fileData->m_FileName.GetFullPath());
+
+					file = m_Explorer->GetNextChild(filter, fileCookie);
+				}
+
+				filter = m_Explorer->GetNextChild(treeItem, filterCookie);
 			}
+		}
+		else if (itemData->m_Type == TreeItemData::NODE_MAP)
+		{
+			if (itemData->m_FileName.IsAbsolute())
+				itemData->m_FileName.MakeRelativeTo(outFileName.GetPath());
 
-			filter = m_Explorer->GetNextChild(package, filterCookie);
+			wxXmlNode* mapNode = new wxXmlNode(root, wxXML_ELEMENT_NODE, XML_MAP_NAME);
+			mapNode->AddAttribute("Path", itemData->m_FileName.GetFullPath());
 		}
 
-		package = m_Explorer->GetNextChild(m_Root, rootCookie);
+		treeItem = m_Explorer->GetNextChild(m_Root, rootCookie);
 	}
 
 	if (doc.IsOk())
-		m_Changed = !(doc.Save(tempFile) && tempFile.Commit());
+	{
+		doc.Save(tempFile);
+		tempFile.Commit();
+	}
 
 	data->m_FileName = outFileName;
 	m_Explorer->SetItemText(m_Root, outFileName.GetFullName());
@@ -149,84 +161,97 @@ void ProjectExplorer::Save(const wxFileName& fileName)
 
 void ProjectExplorer::Load(const wxFileName& fileName)
 {
-	if (!fileName.IsOk())
-		return; // new project
+	// clear the explorer
+	Clear();
 
-	wxXmlDocument doc;
-	if (!doc.Load(fileName.GetFullPath()) ||
-		doc.GetRoot()->GetName() != XML_PROJECT_NAME)
-	{
-		wxLogWarning(_("Failed to open project %s"), fileName.GetFullPath());
-		return;
-	}
+	// is this a new *.mep file?
+	if (fileName.GetFullName().StartsWith(wxT("*.")))
+		return; // no more work
+	
+	// create the root item
+	TreeItemData* data = new TreeItemData(TreeItemData::NODE_PROJECT);
+	data->m_FileName = fileName;
+	m_Root = m_Explorer->AddRoot(fileName.GetFullName(), -1, -1, data);
 
-	wxXmlNode* child = doc.GetRoot()->GetChildren();
-	while (child)
+	if (fileName.Exists())
 	{
-		if (child->GetName() == XML_PACKAGE_NAME)
+		// try to open the project file
+		wxXmlDocument doc;
+		if (!doc.Load(fileName.GetFullPath()) ||
+			doc.GetRoot()->GetName() != XML_PROJECT_NAME)
 		{
-			wxXmlNode* packageNode = child;
-			TreeItemData* data = new TreeItemData(TreeItemData::NODE_PACKAGE);
-			data->m_FileName = packageNode->GetAttribute("Path");
-			wxTreeItemId packageId = m_Explorer->AppendItem(m_Root, data->m_FileName.GetFullName(),
-				-1, -1, data);
-
-			wxXmlNode* packageChild = packageNode->GetChildren();
-			while (packageChild)
-			{
-				if (packageChild->GetName() == XML_FILTER_NAME)
-				{
-					wxXmlNode* filterNode = packageChild;
-					TreeItemData* data = new TreeItemData(TreeItemData::NODE_FILTER);
-					data->m_Filter = filterNode->GetAttribute("FileTypes");
-					wxTreeItemId filterId = m_Explorer->AppendItem(packageId, filterNode->GetAttribute("Name"),
-						-1, -1, data);
-
-					wxXmlNode* fileNode = filterNode->GetChildren();
-					while (fileNode)
-					{
-						TreeItemData* data = new TreeItemData(TreeItemData::NODE_FILE);
-						data->m_FileName = fileNode->GetAttribute("Path");
-						m_Explorer->AppendItem(filterId, data->m_FileName.GetFullName(), -1, -1, data);
-
-						fileNode = fileNode->GetNext();
-					}
-
-					m_Explorer->SortChildren(filterId);
-				}
-
-				m_Explorer->SortChildren(packageId);
-				packageChild = packageChild->GetNext();
-	 		}
+			wxLogWarning(_("Failed to open project %s"), fileName.GetFullPath());
+			return;
 		}
 
-		child = child->GetNext();
-	}
+		wxXmlNode* child = doc.GetRoot()->GetChildren();
+		while (child)
+		{
+			if (child->GetName() == XML_PACKAGE_NAME)
+			{
+				wxXmlNode* packageNode = child;
+				TreeItemData* data = new TreeItemData(TreeItemData::NODE_PACKAGE);
+				data->m_FileName = packageNode->GetAttribute("Path");
+				wxTreeItemId packageId = m_Explorer->AppendItem(m_Root, data->m_FileName.GetFullName(),
+					-1, -1, data);
 
-	m_Explorer->SetItemText(m_Root, fileName.GetFullName());
-	TreeItemData* data = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(m_Root));
-	data->m_FileName = fileName;
-	m_Explorer->SortChildren(m_Root);
+				wxXmlNode* packageChild = packageNode->GetChildren();
+				while (packageChild)
+				{
+					if (packageChild->GetName() == XML_FILTER_NAME)
+					{
+						wxXmlNode* filterNode = packageChild;
+						TreeItemData* data = new TreeItemData(TreeItemData::NODE_FILTER);
+						data->m_Filter = filterNode->GetAttribute("FileTypes");
+						wxTreeItemId filterId = m_Explorer->AppendItem(packageId, filterNode->GetAttribute("Name"),
+							-1, -1, data);
+
+						wxXmlNode* fileNode = filterNode->GetChildren();
+						while (fileNode)
+						{
+							TreeItemData* data = new TreeItemData(TreeItemData::NODE_FILE);
+							data->m_FileName = fileNode->GetAttribute("Path");
+							m_Explorer->AppendItem(filterId, data->m_FileName.GetFullName(), -1, -1, data);
+
+							fileNode = fileNode->GetNext();
+						}
+
+						m_Explorer->SortChildren(filterId);
+					}
+
+					m_Explorer->SortChildren(packageId);
+					packageChild = packageChild->GetNext();
+				}
+			}
+			else if (child->GetName() == XML_MAP_NAME)
+			{
+				wxXmlNode* mapNode = child;
+				TreeItemData* data = new TreeItemData(TreeItemData::NODE_MAP);
+				data->m_FileName = mapNode->GetAttribute("Path");
+				wxTreeItemId mapId = m_Explorer->AppendItem(m_Root, data->m_FileName.GetFullName(),
+					-1, -1, data);
+			}
+
+			child = child->GetNext();
+		}
+
+		m_Explorer->SortChildren(m_Root);
+	}
+	else
+		Save(fileName); // write the base project file to disk
+
 	m_Explorer->Expand(m_Root);
 }
 
 void ProjectExplorer::Clear(void)
 {
-	m_Explorer->DeleteChildren(m_Root);
-	m_Explorer->SetItemText(m_Root, _("untitled"));
-	TreeItemData* data = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(m_Root));
-	data->m_FileName.Clear();
-}
-
-bool ProjectExplorer::HasChanged(void)
-{
-	return m_Changed;
+	m_Explorer->DeleteAllItems();
 }
 
 bool ProjectExplorer::HasFilename(void)
 {
 	TreeItemData* data = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(m_Root));
-	if (data->m_FileName.IsOk())
+	if (data && data->m_FileName.IsOk())
 		return true;
 
 	return false;
@@ -269,6 +294,9 @@ void ProjectExplorer::OnNewMpkPackage(const wxFileName& fileName)
 		packageId, _("textures"), -1, -1, data);
 
 	m_Explorer->SortChildren(m_Root);
+
+	data = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(m_Root));
+	Save(data->m_FileName);
 }
 
 void ProjectExplorer::OnNewZipPackage(const wxFileName& fileName)
@@ -285,6 +313,9 @@ void ProjectExplorer::OnNewZipPackage(const wxFileName& fileName)
 	data->m_Filter.assign(wxT("All Files|*.*"));
 	wxTreeItemId item = m_Explorer->AppendItem(
 		packageId, _("content"), -1, -1, data);
+
+	data = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(m_Root));
+	Save(data->m_FileName);
 }
 
 void ProjectExplorer::BuildPackage(const wxTreeItemId& package)
@@ -358,6 +389,15 @@ void ProjectExplorer::CleanPackage(const wxTreeItemId& package)
 	wxRemoveFile(data->m_FileName.GetFullPath());
 }
 
+void ProjectExplorer::OpenMap(const wxFileName& fileName)
+{
+	wxString cmd = wxStandardPaths::Get().GetExecutablePath();
+	cmd.append(wxT(" \""));
+	cmd.append(fileName.GetAbsolutePath()); // ensure we create a new map editor
+	cmd.append(wxT("\""));
+	wxExecute(cmd, wxEXEC_ASYNC);
+}
+
 void ProjectExplorer::OnItemRightClick(wxTreeEvent& event)
 {
 	wxMenu popupMenu;
@@ -425,11 +465,7 @@ void ProjectExplorer::OnItemActivated(wxTreeEvent& event)
 	else if (data->m_Type == TreeItemData::NODE_MAP)
 	{
 		// launch a new editor instance
-		wxString cmd = wxStandardPaths::Get().GetExecutablePath();
-		cmd.append(wxT(" \""));
-		cmd.append(data->m_FileName.GetFullPath()); // ensure we create a new map editor
-		cmd.append(wxT("\""));
-		wxExecute(cmd, wxEXEC_ASYNC);
+		OpenMap(data->m_FileName);
 	}
 	else
 		event.Skip(); // allow expand/collapse functions
@@ -451,8 +487,6 @@ void ProjectExplorer::OnMenuNewPackage(wxCommandEvent& event)
 		OnNewMpkPackage(fileName);
 	else if (fileName.GetExt().CompareTo(wxT("zip"), wxString::ignoreCase) == 0)
 		OnNewZipPackage(fileName);
-
-	m_Changed = true;
 }
 
 void ProjectExplorer::OnMenuNewMap(wxCommandEvent& event)
@@ -473,7 +507,8 @@ void ProjectExplorer::OnMenuNewMap(wxCommandEvent& event)
 		m_Root, fileName.GetFullName(), -1, -1, data);
 	m_Explorer->EnsureVisible(mapId);
 
-	m_Changed = true;
+	data = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(m_Root));
+	Save(data->m_FileName);
 }
 
 void ProjectExplorer::OnMenuAddNewItem(wxCommandEvent& event)
@@ -498,7 +533,8 @@ void ProjectExplorer::OnMenuAddNewItem(wxCommandEvent& event)
 	m_Explorer->SortChildren(filterItem);
 	m_Explorer->EnsureVisible(fileId);
 
-	m_Changed = true;
+	data = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(m_Root));
+	Save(data->m_FileName);
 }
 
 void ProjectExplorer::OnMenuAddExistingItem(wxCommandEvent& event)
@@ -523,7 +559,8 @@ void ProjectExplorer::OnMenuAddExistingItem(wxCommandEvent& event)
 	m_Explorer->SortChildren(filterItem);
 	m_Explorer->EnsureVisible(fileId);
 
-	m_Changed = true;
+	data = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(m_Root));
+	Save(data->m_FileName);
 }
 
 void ProjectExplorer::OnMenuAddFilter(wxCommandEvent& event)
@@ -547,9 +584,10 @@ void ProjectExplorer::OnMenuAddFilter(wxCommandEvent& event)
 			filterData);
 		m_Explorer->SortChildren(item);
 		m_Explorer->EnsureVisible(filterItem);
-
-		m_Changed = true;
 	}
+
+	data = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(m_Root));
+	Save(data->m_FileName);
 }
 
 void ProjectExplorer::OnMenuOpenFile(wxCommandEvent& event)
@@ -562,6 +600,8 @@ void ProjectExplorer::OnMenuOpenFile(wxCommandEvent& event)
 	TreeItemData* data = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(item));
 	if (data->m_Type == TreeItemData::NODE_FILE)
 		m_Editor->OpenFile(data->m_FileName);
+	else if (data->m_Type == TreeItemData::NODE_MAP)
+		OpenMap(data->m_FileName);
 }
 
 void ProjectExplorer::OnMenuRemove(wxCommandEvent& event)
@@ -575,7 +615,8 @@ void ProjectExplorer::OnMenuRemove(wxCommandEvent& event)
 		return;
 
 	if (data->m_Type == TreeItemData::NODE_FILTER ||
-		data->m_Type == TreeItemData::NODE_PACKAGE)
+		data->m_Type == TreeItemData::NODE_PACKAGE ||
+		data->m_Type == TreeItemData::NODE_MAP)
 	{
 		wxMessageDialog check(this,
 			wxString::Format(_("Are you sure you want to remove %s?"),
@@ -586,7 +627,9 @@ void ProjectExplorer::OnMenuRemove(wxCommandEvent& event)
 	}
 
 	m_Explorer->Delete(item);
-	m_Changed = true;
+
+	data = dynamic_cast<TreeItemData*>(m_Explorer->GetItemData(m_Root));
+	Save(data->m_FileName);
 }
 
 void ProjectExplorer::OnMenuBuildProject(wxCommandEvent& event)

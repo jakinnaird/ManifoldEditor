@@ -260,7 +260,7 @@ void MapEditor::OnRedo(void)
     m_ViewPanel->Refresh(false);
 }
 
-bool MapEditor::OnSave(void)
+bool MapEditor::OnSave(bool allFiles)
 {
     if (!m_Map->HasFilename())
         return OnSaveAs();
