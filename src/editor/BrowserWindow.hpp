@@ -7,6 +7,7 @@
 #pragma once
 
 #include <wx/dialog.h>
+#include <wx/filename.h>
 #include <wx/listbox.h>
 #include <wx/notebook.h>
 #include <wx/panel.h>
@@ -14,6 +15,7 @@
 #include <wx/statusbr.h>
 #include <wx/toolbar.h>
 #include <wx/treectrl.h>
+#include <wx/xml/xml.h>
 
 #include <list>
 #include <map>
@@ -109,12 +111,11 @@ private:
 class ActorBrowser : public wxPanel
 {
 private:
-	typedef std::list<wxString> packagelist_t;
-	static packagelist_t ms_Packages;
-
-private:
 	wxTreeCtrl* m_Tree;
 	wxTreeItemId m_Root;
+	wxArrayString m_Categories;
+
+	wxFileName m_DefinitionFile;
 
 public:
 	ActorBrowser(wxWindow* parent);
@@ -122,11 +123,15 @@ public:
 
 	//const wxString& GetSelection(void);
 
-	static void AddPackage(const wxString& path);
-
 private:
-	bool LoadPackage(const wxString& path, bool preload = false);
-
 	void OnToolAdd(wxCommandEvent& event);
 	void OnToolOpen(wxCommandEvent& event);
+	void OnToolSave(wxCommandEvent& event);
+	void OnToolSaveAs(wxCommandEvent& event);
+
+	void OnItemActivate(wxTreeEvent& event);
+
+private:
+	void AddActor(wxXmlNode* actor);
+	wxTreeItemId FindItem(const wxString& name, wxTreeItemId& start);
 };
