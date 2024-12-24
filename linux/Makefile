@@ -22,7 +22,7 @@ irrlicht-clean:
 	cd ../thirdparty/irrlicht-1.8.5/source/Irrlicht && make clean
 	rm ../bin/libIrrlicht.so.1.8 ../thirdparty/irrlicht-1.8.5/source/Irrlicht/libIrrlicht.so.1.8.5
 
-editor:
+editor: irrlicht
 	cd .cmake && cmake .
 	cd .cmake && make
 	mv .cmake/ManifoldEditor ../bin
