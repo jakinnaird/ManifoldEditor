@@ -93,6 +93,7 @@ MainWindow::MainWindow(void)
     menuTools->Append(TOOL_BROWSER, _("Entity Browser"), nullptr, _("Open the entity browser"));
     menuTools->Append(TOOL_ACTORBROWSER, _("Show Actor Browser"), nullptr, _("Open the actor browser"));
     menuTools->Append(TOOL_TEXTUREBROWSER, _("Show Texture Browser"), nullptr, _("Open the texture browser"));
+    menuTools->Append(TOOL_SOUNDBROWSER, _("Show Sound Browser"), nullptr, _("Open the sound browser"));
 
     wxMenu* menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
@@ -175,6 +176,7 @@ MainWindow::MainWindow(void)
     Bind(wxEVT_MENU, &MainWindow::OnToolsPackageManager, this, TOOL_PACKAGEMANAGER);
     Bind(wxEVT_MENU, &MainWindow::OnToolsActorBrowser, this, TOOL_ACTORBROWSER);
     Bind(wxEVT_MENU, &MainWindow::OnToolsTextureBrowser, this, TOOL_TEXTUREBROWSER);
+    Bind(wxEVT_MENU, &MainWindow::OnToolsSoundBrowser, this, TOOL_SOUNDBROWSER);
 
     m_AuiMgr.Update();
 
@@ -560,6 +562,12 @@ void MainWindow::OnToolsTextureBrowser(wxCommandEvent& event)
 {
     OnToolsEntityBrowser(event);
     m_Browser->SwitchTo(BrowserWindow::PAGE_TEXTURES);
+}
+
+void MainWindow::OnToolsSoundBrowser(wxCommandEvent& event)
+{
+    OnToolsEntityBrowser(event);
+    m_Browser->SwitchTo(BrowserWindow::PAGE_SOUNDS);
 }
 
 void MainWindow::OnToolsPackageManager(wxCommandEvent& event)

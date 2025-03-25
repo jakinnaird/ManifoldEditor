@@ -9,6 +9,7 @@
 #include <wx/dialog.h>
 #include <wx/filename.h>
 #include <wx/listbox.h>
+#include <wx/listctrl.h>
 #include <wx/notebook.h>
 #include <wx/panel.h>
 #include <wx/scrolwin.h>
@@ -25,21 +26,24 @@
 
 class TextureBrowser;
 class ActorBrowser;
+class SoundBrowser;
 
 class BrowserWindow : public wxDialog
 {
 public:
 	enum PageNumbers : int
 	{
-		PAGE_TEXTURES,
 		PAGE_ACTORS,
+		PAGE_TEXTURES,
+		PAGE_SOUNDS,
 	};
 
 private:
 	wxNotebook* m_Notebook;
 
-	TextureBrowser* m_Textures;
 	ActorBrowser* m_Actors;
+	TextureBrowser* m_Textures;
+	SoundBrowser* m_Sounds;
 
 public:
 	BrowserWindow(wxWindow* parent);
@@ -134,4 +138,34 @@ private:
 private:
 	void AddActor(wxXmlNode* actor);
 	wxTreeItemId FindItem(const wxString& name, wxTreeItemId& start);
+};
+
+class SoundBrowser : public wxPanel
+{
+private:
+	enum
+	{
+		COL_PATH = 0,
+		COL_TYPE,
+		COL_CHANNELS,
+		COL_FREQ
+	};
+
+private:
+	wxListView* m_List;
+
+	typedef std::map<long, wxString> itempath_t;
+	itempath_t m_ItemPaths;
+
+public:
+	SoundBrowser(wxWindow* parent);
+	~SoundBrowser(void);
+
+private:
+	void OnToolAdd(wxCommandEvent& event);
+	void OnToolOpen(wxCommandEvent& event);
+	void OnToolPlay(wxCommandEvent& event);
+	void OnToolStop(wxCommandEvent& event);
+
+	void OnItemActivate(wxTreeEvent& event);
 };

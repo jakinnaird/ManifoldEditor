@@ -70,5 +70,6 @@ private:
 	void OnToolsEntityBrowser(wxCommandEvent& event);
 	void OnToolsActorBrowser(wxCommandEvent& event);
 	void OnToolsTextureBrowser(wxCommandEvent& event);
+	void OnToolsSoundBrowser(wxCommandEvent& event);
 	void OnToolsPackageManager(wxCommandEvent& event);
 };

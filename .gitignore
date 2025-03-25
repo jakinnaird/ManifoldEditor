@@ -15,7 +15,7 @@ bin/ManifoldEditor*
 
 # specific
 msw/obj
-thirdparty/freetype-2.13.3/objs/x64
+thirdparty/freetype-2.13.3/objs/
 thirdparty/freetype-demos
 thirdparty/irrlicht-1.8.5/source/Irrlicht/obj
 thirdparty/wxWidgets-3.2.4/build/msw/vc_x64_mswuddll

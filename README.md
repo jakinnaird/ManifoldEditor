@@ -128,3 +128,13 @@ Portions of this software use the following icons
 <a href="https://www.flaticon.com/free-icons/pin" title="pin icons">Pin icons created by Freepik - Flaticon</a>
 
 <a href="https://www.flaticon.com/free-icons/play-button" title="play button icons">Play button icons created by Freepik - Flaticon</a>
+
+<a href="https://www.flaticon.com/free-icons/stop-sign" title="stop sign icons">Stop sign icons created by SeyfDesigner - Flaticon</a>
+
+<a href="https://www.flaticon.com/free-icons/sound" title="sound icons">Sound icons created by alta-icon - Flaticon</a>
+
+## Models
+
+Portions of this software use the following models
+
+<a href="https://www.thingiverse.com/thing:5900141/files" title="Mensch-Ärgere-Dich-Nicht-Spielfigur">Mensch-Ärgere-Dich-Nicht-Spielfigur - TeutonicResin</a>

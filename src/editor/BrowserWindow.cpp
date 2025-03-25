@@ -5,13 +5,17 @@
 */
 
 #include "BrowserWindow.hpp"
+#include "Common.hpp"
+#include "FSHandler.hpp"
 
 #include <wx/artprov.h>
+#include <wx/busyinfo.h>
 #include <wx/choicdlg.h>
 #include <wx/dcclient.h>
 #include <wx/filedlg.h>
 #include <wx/filefn.h>
 #include <wx/log.h>
+#include <wx/mimetype.h>
 #include <wx/msgdlg.h>
 #include <wx/mstream.h>
 #include <wx/propgrid/propgrid.h>
@@ -29,11 +33,13 @@ BrowserWindow::BrowserWindow(wxWindow* parent)
 	m_Notebook = new wxNotebook(this, wxID_ANY, wxDefaultPosition,
 		wxDefaultSize, wxNB_TOP | wxNB_FIXEDWIDTH);
 
-	m_Textures = new TextureBrowser(m_Notebook);
 	m_Actors = new ActorBrowser(m_Notebook);
+	m_Textures = new TextureBrowser(m_Notebook);
+	m_Sounds = new SoundBrowser(m_Notebook);
 
-	m_Notebook->InsertPage(PAGE_TEXTURES, m_Textures, _("Textures"), true);
 	m_Notebook->InsertPage(PAGE_ACTORS, m_Actors, _("Actors"), false);
+	m_Notebook->InsertPage(PAGE_TEXTURES, m_Textures, _("Textures"), true);
+	m_Notebook->InsertPage(PAGE_SOUNDS, m_Sounds, _("Sounds"), false);
 
 	sizer->Add(m_Notebook, wxSizerFlags(9).Expand());
 	this->SetSizerAndFit(sizer);
@@ -57,11 +63,14 @@ void BrowserWindow::SwitchTo(int pageNumber)
 	m_Notebook->SetSelection(pageNumber);
 	switch (pageNumber)
 	{
+	case PAGE_ACTORS:
+		SetTitle(_("Actor Browser"));
+		break;
 	case PAGE_TEXTURES:
 		SetTitle(_("Texture Browser"));
 		break;
-	case PAGE_ACTORS:
-		SetTitle(_("Actor Browser"));
+	case PAGE_SOUNDS:
+		SetTitle(_("Sound Browser"));
 		break;
 	}
 }
@@ -174,6 +183,13 @@ bool TextureBrowser::LoadPackage(const wxString& path, bool preload)
 				return true; // already exists
 		}
 	}
+
+	wxBusyInfo wait(wxBusyInfoFlags()
+		.Parent(this)
+		.Title(_("Opening package"))
+		.Text(_("Please wait..."))
+		.Foreground(*wxBLACK)
+		.Background(*wxWHITE));
 
 	wxFileInputStream inStream(path);
 	if (inStream.IsOk())
@@ -894,4 +910,144 @@ wxTreeItemId ActorBrowser::FindItem(const wxString& name, wxTreeItemId& start)
 	}
 
 	return wxTreeItemId(); // not found
+}
+
+SoundBrowser::SoundBrowser(wxWindow* parent)
+	: wxPanel(parent)
+{
+	wxFileSystem fs;
+
+	// create the toolbar
+	wxToolBar* tools = new wxToolBar(this, wxID_ANY, wxDefaultPosition,
+		wxDefaultSize, wxTB_FLAT | wxTB_HORIZONTAL);
+	tools->AddTool(wxID_NEW, _("Add"), wxArtProvider::GetBitmap(wxART_NEW),
+		_("Add sound"));
+	tools->AddTool(wxID_OPEN, _("Open"), wxArtProvider::GetBitmap(wxART_FILE_OPEN),
+		_("Open package"));
+	tools->AddSeparator();
+
+	wxVector<wxBitmap> playTool;
+	playTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/play32.png", wxBITMAP_TYPE_PNG));
+	playTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/play48.png", wxBITMAP_TYPE_PNG));
+	playTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/play64.png", wxBITMAP_TYPE_PNG));
+	tools->AddTool(MENU_PLAYSOUND, _("Play sound"), wxBitmapBundle::FromBitmaps(playTool),
+		_("Play Sound"));
+
+	wxVector<wxBitmap> stopTool;
+	stopTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/stop32.png", wxBITMAP_TYPE_PNG));
+	stopTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/stop48.png", wxBITMAP_TYPE_PNG));
+	stopTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/stop64.png", wxBITMAP_TYPE_PNG));
+	tools->AddTool(MENU_STOPSOUND, _("Stop sound"), wxBitmapBundle::FromBitmaps(stopTool),
+		_("Stop playing sound"));
+	tools->Realize();
+
+	m_List = new wxListView(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+		wxLC_REPORT | wxLC_VRULES);
+	m_List->AppendColumn(_("Path"));
+	m_List->AppendColumn(_("Type"));
+	m_List->AppendColumn(_("Channels"));
+	m_List->AppendColumn(_("Frequency"));
+
+	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+	sizer->Add(tools, wxSizerFlags(1).Expand());
+	sizer->Add(m_List, wxSizerFlags(9).Expand());
+	this->SetSizerAndFit(sizer);
+
+	Bind(wxEVT_MENU, &SoundBrowser::OnToolAdd, this, wxID_NEW);
+	Bind(wxEVT_MENU, &SoundBrowser::OnToolOpen, this, wxID_OPEN);
+	Bind(wxEVT_MENU, &SoundBrowser::OnToolPlay, this, MENU_PLAYSOUND);
+	Bind(wxEVT_MENU, &SoundBrowser::OnToolStop, this, MENU_STOPSOUND);
+}
+
+SoundBrowser::~SoundBrowser(void)
+{
+}
+
+void SoundBrowser::OnToolAdd(wxCommandEvent& event)
+{
+}
+
+void SoundBrowser::OnToolOpen(wxCommandEvent& event)
+{
+	wxFileDialog openDialog(this,
+		_("Open package"), wxEmptyString, wxEmptyString,
+		_("Manifold Archive Package (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip"),
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openDialog.ShowModal() == wxID_CANCEL)
+		return; // not opening today
+
+	wxBusyInfo wait(wxBusyInfoFlags()
+		.Parent(this)
+		.Title(_("Opening package"))
+		.Text(_("Please wait..."))
+		.Foreground(*wxBLACK)
+		.Background(*wxWHITE));
+
+	wxString path(openDialog.GetPath());
+	wxFileInputStream inStream(path);
+	if (inStream.IsOk())
+	{
+		wxZipInputStream zipStream(inStream);
+		if (!zipStream.IsOk())
+		{
+			wxLogWarning(_("Unsupported archive: %s"), path);
+			return;
+		}
+
+		wxZipEntry* entry = zipStream.GetNextEntry();
+		while (entry)
+		{
+			wxString entryPath(entry->GetName());
+
+			// support archives made on any platform
+			if (entryPath.StartsWith(wxT("sounds/")) ||
+				entryPath.StartsWith(wxT("sounds\\")) ||
+				entryPath.StartsWith(wxT("music/")) ||
+				entryPath.StartsWith(wxT("music\\")))
+			{
+				// build the full path
+				wxString sndPath(path);
+				sndPath.append(wxT(":"));
+				sndPath.append(entryPath);
+
+				// add this to the list
+				long index = m_List->InsertItem(m_List->GetItemCount(), entry->GetName());
+				m_List->SetItemData(index, -1);
+				m_ItemPaths[index] = sndPath;
+
+				wxFileName fn(entry->GetName());
+				wxFileType* mimeType = wxTheMimeTypesManager->GetFileTypeFromExtension(fn.GetExt());
+				if (mimeType)
+				{
+					wxString type;
+					if (mimeType->GetMimeType(&type))
+						m_List->SetItem(index, COL_TYPE, type);
+					else
+						m_List->SetItem(index, COL_TYPE, _("Unknown"));
+
+					delete mimeType;
+				}
+				else
+					m_List->SetItem(index, COL_TYPE, _("Unknown"));
+
+				// get the meta data for the item
+
+			}
+
+			entry->UnRef();
+			entry = zipStream.GetNextEntry();
+		}
+	}
+}
+
+void SoundBrowser::OnToolPlay(wxCommandEvent& event)
+{
+}
+
+void SoundBrowser::OnToolStop(wxCommandEvent& event)
+{
+}
+
+void SoundBrowser::OnItemActivate(wxTreeEvent& event)
+{
 }

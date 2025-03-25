@@ -127,6 +127,13 @@ MapEditor::MapEditor(MainWindow* parent, wxMenu* editMenu,
     advancedTools->AddTool(TOOL_TEXTUREBROWSER, _("Texture Browser"), wxBitmapBundle::FromBitmaps(textureTool),
         _("Texture Browser"));
 
+    wxVector<wxBitmap> soundTool;
+    soundTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/sound32.png", wxBITMAP_TYPE_PNG));
+    soundTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/sound48.png", wxBITMAP_TYPE_PNG));
+    soundTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/sound64.png", wxBITMAP_TYPE_PNG));
+    advancedTools->AddTool(TOOL_SOUNDBROWSER, _("Sound Browser"), wxBitmapBundle::FromBitmaps(soundTool),
+        _("Sound Browser"));
+
     wxVector<wxBitmap> lightTool;
     lightTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/light32.png", wxBITMAP_TYPE_PNG));
     lightTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/light48.png", wxBITMAP_TYPE_PNG));
