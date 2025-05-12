@@ -37,6 +37,7 @@ public:
 	~ExplorerPanel(void);
 
 	void SetViewPanel(ViewPanel* viewPanel);
+	BrowserWindow* GetBrowser(void);
 
 	void SetSceneManager(irr::scene::ISceneManager* sceneMgr);
 	void SetMapName(const wxString& name);

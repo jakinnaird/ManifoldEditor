@@ -10,6 +10,7 @@
 #include "../extend/PlaneSceneNode.hpp"
 
 #include <wx/log.h>
+#include <wx/sstream.h>
 
 AddNodeCommand::AddNodeCommand(TOOLID toolId,
 	ExplorerPanel* explorerPanel,
@@ -21,6 +22,12 @@ AddNodeCommand::AddNodeCommand(TOOLID toolId,
 	  m_SceneMgr(sceneMgr), m_MapRoot(mapRoot), 
 	  m_Map(map), m_Position(position), m_Name(name)
 {
+	// handle TOOL_ACTOR
+	if (m_ToolId == TOOL_ACTOR)
+	{
+		m_Actor = name;
+		m_Name = m_Map->NextName(name);
+	}
 }
 
 AddNodeCommand::AddNodeCommand(const wxString& nodeType,
@@ -52,6 +59,14 @@ AddNodeCommand::AddNodeCommand(const wxString& nodeType,
 		m_ToolId = TOOL_LIGHT;
 	else if (nodeType.CmpNoCase("pathnode") == 0)
 		m_ToolId = TOOL_PATHNODE;
+	else if (nodeType.CmpNoCase("actor") == 0)
+	{
+		m_ToolId = TOOL_ACTOR;
+		m_Actor = name;
+		m_Name = m_Map->NextName(name);
+	}
+	else if (nodeType.CmpNoCase("animatedMesh") == 0)
+		m_ToolId = (TOOLID)irr::scene::ESNT_ANIMATED_MESH;
 	else
 		m_ToolId = (TOOLID)0; // unknown
 }
@@ -199,6 +214,112 @@ bool AddNodeCommand::Do(void)
 
 		isActor = true;
 	} break;
+	case TOOL_ACTOR:
+	{
+		// get the actor definition
+		wxString definition = m_ExplorerPanel->GetBrowser()->GetActorDefinition(m_Actor);
+		wxStringInputStream stream(definition);
+		wxXmlDocument doc(stream);
+		wxXmlNode* actorDefinition = doc.GetRoot();
+		if (!actorDefinition)
+			return false;
+
+		// figure out the type of actor
+		wxString type = actorDefinition->GetAttribute("Type");
+		if (type.CmpNoCase("Model") == 0)
+		{
+			// A Model needs to have at least 2 attributes
+			wxXmlNode* attributes = actorDefinition->GetChildren();
+			if (!actorDefinition)
+				return false;
+
+			// get the mesh and texture
+			wxString mesh;
+			wxString texture;
+
+			while (attributes)
+			{
+				if (attributes->GetName().CmpNoCase("String") == 0)
+				{
+					if (attributes->HasAttribute("Mesh"))
+						mesh = attributes->GetAttribute("Mesh");
+					else if (attributes->HasAttribute("Texture"))
+						texture = attributes->GetAttribute("Texture");
+					else // add the attribute as user data
+					{
+						wxXmlAttribute* attribute = attributes->GetAttributes();
+						if (attribute) // we only have one attribute
+						{
+							wxString key = attribute->GetName();
+							wxString value = attribute->GetValue();
+							attribs->addString(key.c_str().AsChar(), value.c_str().AsChar());
+						}
+					}
+				}
+				else if (attributes->GetName().CmpNoCase("Float") == 0)
+				{
+					wxXmlAttribute* attribute = attributes->GetAttributes();
+					if (attribute) // we only have one attribute
+					{
+						wxString key = attribute->GetName();
+						wxString value = attribute->GetValue();
+						double f = 0;
+						if (value.ToDouble(&f))
+							attribs->addFloat(key.c_str().AsChar(), f);
+					}
+				}
+				else if (attributes->GetName().CmpNoCase("Integer") == 0)
+				{
+					wxXmlAttribute* attribute = attributes->GetAttributes();
+					if (attribute) // we only have one attribute
+					{
+						wxString key = attribute->GetName();
+						wxString value = attribute->GetValue();
+						int i = 0;
+						if (value.ToInt(&i))
+							attribs->addInt(key.c_str().AsChar(), i);
+					}
+				}
+
+				attributes = attributes->GetNext();
+			}
+
+			// add a model actor
+			irr::scene::IAnimatedMesh* animatedMesh = m_SceneMgr->getMesh(mesh.c_str().AsChar());
+			if (!animatedMesh)
+				return false;
+
+			irr::scene::IAnimatedMeshSceneNode* model = m_SceneMgr->addAnimatedMeshSceneNode(
+				animatedMesh, m_MapRoot, NID_PICKABLE);
+			model->setName(m_Name.c_str());
+			model->setPosition(m_Position);
+			model->setAnimationSpeed(0); // we don't want to have it animated
+			model->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+
+			// set the texture
+			if (!texture.IsEmpty())
+				model->setMaterialTexture(0, m_SceneMgr->getVideoDriver()->getTexture(
+			 		texture.c_str().AsChar()));
+			else
+				model->setMaterialTexture(0, m_SceneMgr->getVideoDriver()->getTexture(
+			 		"editor.mpk:textures/default.jpg"));
+
+			// @TODO: Add the attributes to the scene node's UserData
+		}
+
+		isActor = true;
+	} break;
+	case irr::scene::ESNT_ANIMATED_MESH:
+	{
+		// Add an empty animated mesh scene node
+		irr::scene::IAnimatedMeshSceneNode* sceneNode = m_SceneMgr->addAnimatedMeshSceneNode(
+			nullptr, m_MapRoot, NID_PICKABLE, m_Position, 
+			irr::core::vector3df(0, 0, 0), irr::core::vector3df(1, 1, 1),
+			true);
+
+		sceneNode->setName(m_Name.c_str());
+		isActor = true;
+	} break;
 	default:
 		return false;
 	}
@@ -259,7 +380,7 @@ bool AddNodeCommand::Do(void)
 
 wxString AddNodeCommand::GetName(void) const
 {
-	return wxString(_("Add geometry ")).Append(m_Name);
+	return wxString(_("Add ")).Append(m_Name);
 }
 
 bool AddNodeCommand::Undo(void)
@@ -1022,18 +1143,22 @@ bool DeleteNodeCommand::Do(void)
 
 			wxString name(*item);
 			name.append(wxT("_marker"));
-			irr::io::IAttributes* markerAttribs = m_SceneMgr->getFileSystem()->createEmptyAttributes(
-				m_SceneMgr->getVideoDriver());
 			irr::scene::ISceneNode* marker = m_SceneMgr->getSceneNodeFromName(name.c_str());
-			marker->serializeAttributes(markerAttribs, &opts);
-			
-			irr::scene::IMeshSceneNode* meshNode = static_cast<irr::scene::IMeshSceneNode*>(marker);
-			irr::video::SMaterial& material = meshNode->getMaterial(0);
-			irr::io::IAttributes* materialAttribs = m_SceneMgr->getVideoDriver()->createAttributesFromMaterial(material, &opts);
+			if (marker)
+			{
+				irr::io::IAttributes* markerAttribs = m_SceneMgr->getFileSystem()->createEmptyAttributes(
+					m_SceneMgr->getVideoDriver());
+				
+				marker->serializeAttributes(markerAttribs, &opts);
+				
+				irr::scene::IMeshSceneNode* meshNode = static_cast<irr::scene::IMeshSceneNode*>(marker);
+				irr::video::SMaterial& material = meshNode->getMaterial(0);
+				irr::io::IAttributes* materialAttribs = m_SceneMgr->getVideoDriver()->createAttributesFromMaterial(material, &opts);
 
-			m_Actors.emplace(name, markerAttribs);
-			m_Materials.emplace(name, materialAttribs);
-			marker->remove();
+				m_Actors.emplace(name, markerAttribs);
+				m_Materials.emplace(name, materialAttribs);
+				marker->remove();
+			}
 		}
 
 		m_Map->RemoveEntity((*item));
@@ -1094,21 +1219,24 @@ bool DeleteNodeCommand::Undo(void)
 				dynamic_cast<PathSceneNode*>(node)->drawLink(true);
 
 			// add the marker
-			wxString name(*item);
-			name.append(wxT("_marker"));
-			_item = m_Actors.find(name);
-			irr::scene::IBillboardSceneNode* marker = m_SceneMgr->addBillboardSceneNode(
-				node, irr::core::dimension2df(5, 5), irr::core::vector3df(), NID_NOSAVE);
-			marker->deserializeAttributes((*_item).second, &opts);
+			if (type < TOOL_IRRLICHT_ID)
+			{
+				wxString name(*item);
+				name.append(wxT("_marker"));
+				_item = m_Actors.find(name);
+				irr::scene::IBillboardSceneNode* marker = m_SceneMgr->addBillboardSceneNode(
+					node, irr::core::dimension2df(5, 5), irr::core::vector3df(), NID_NOSAVE);
+				marker->deserializeAttributes((*_item).second, &opts);
 
-			m_SceneMgr->getVideoDriver()->fillMaterialStructureFromAttributes(marker->getMaterial(0),
-				m_Materials[name]);
+				m_SceneMgr->getVideoDriver()->fillMaterialStructureFromAttributes(marker->getMaterial(0),
+					m_Materials[name]);
 
-			// set the triangle selector
-			irr::scene::ITriangleSelector* selector = m_SceneMgr->createTriangleSelectorFromBoundingBox(
-				marker);
-			node->setTriangleSelector(selector);
-			selector->drop();
+				// set the triangle selector
+				irr::scene::ITriangleSelector* selector = m_SceneMgr->createTriangleSelectorFromBoundingBox(
+					marker);
+				node->setTriangleSelector(selector);
+				selector->drop();
+			}
 
 			// add the actor
 			m_ExplorerPanel->AddActor((*item));

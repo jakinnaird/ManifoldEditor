@@ -19,6 +19,17 @@
 
 #include <sstream>
 
+class PropertyClientData : public wxClientData
+{
+public:
+	PropertyClientData(irr::io::E_ATTRIBUTE_TYPE type)
+		: m_Type(type)
+	{
+	}
+
+	irr::io::E_ATTRIBUTE_TYPE m_Type;
+};
+
 PropertyPanel::PropertyPanel(wxWindow* parent, wxCommandProcessor& cmdProc)
 	: wxPanel(parent), m_Commands(cmdProc), m_Properties(nullptr),
 	  m_SceneNode(nullptr), m_PosX(nullptr), m_PosY(nullptr), m_PosZ(nullptr)
@@ -33,6 +44,9 @@ PropertyPanel::PropertyPanel(wxWindow* parent, wxCommandProcessor& cmdProc)
 
 	m_Properties = new wxPropertyGrid(this, wxID_ANY, wxDefaultPosition,
 		wxDefaultSize, wxPG_SPLITTER_AUTO_CENTER | wxPG_DEFAULT_STYLE);
+
+	m_Properties->EnableCategories(true);
+	m_Properties->MakeColumnEditable(0);
 
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(m_ToolBar, wxSizerFlags(1).Expand());
@@ -74,13 +88,19 @@ void PropertyPanel::Refresh(void)
 		irr::io::IAttributes* attribs = m_SceneNode->getSceneManager()->getFileSystem()->createEmptyAttributes(nullptr);
 		m_SceneNode->serializeAttributes(attribs, &opts);
 
+		m_GeneralProperties = new wxPropertyCategory(_("General"));
+		m_CustomProperties = new wxPropertyCategory(_("Custom"));
+		m_Properties->Append(m_GeneralProperties);
+		m_Properties->Append(m_CustomProperties);
+
 		// name
-		m_Properties->Append(new wxStringProperty(_("Name"), wxPG_LABEL,
-			m_SceneNode->getName()));
+		wxStringProperty* name = new wxStringProperty(_("Name"));
+		name->SetValueFromString(m_SceneNode->getName());
+		m_Properties->AppendIn(m_GeneralProperties, name);
 
 		// build the position
 		irr::core::vector3df pos = m_SceneNode->getAbsolutePosition();
-		wxPGProperty* position = m_Properties->Append(new wxStringProperty(_("Position"),
+		wxPGProperty* position = m_Properties->AppendIn(m_GeneralProperties, new wxStringProperty(_("Position"),
 			wxPG_LABEL, "<composed>"));
 		m_PosX = new wxFloatProperty(_("x"), wxPG_LABEL, pos.X);
 		m_Properties->AppendIn(position, m_PosX);
@@ -92,7 +112,7 @@ void PropertyPanel::Refresh(void)
 
 		// build the rotation
 		irr::core::vector3df rot = m_SceneNode->getRotation();
-		wxPGProperty* rotation = m_Properties->Append(new wxStringProperty(_("Rotation"),
+		wxPGProperty* rotation = m_Properties->AppendIn(m_GeneralProperties, new wxStringProperty(_("Rotation"),
 			wxPG_LABEL, "<composed>"));
 		m_Properties->AppendIn(rotation, new wxFloatProperty(_("x"), wxPG_LABEL, rot.X));
 		m_Properties->AppendIn(rotation, new wxFloatProperty(_("y"), wxPG_LABEL, rot.Y));
@@ -101,7 +121,7 @@ void PropertyPanel::Refresh(void)
 
 		// scale
 		irr::core::vector3df _scale = m_SceneNode->getScale();
-		wxPGProperty* scale = m_Properties->Append(new wxStringProperty(_("Scale"),
+		wxPGProperty* scale = m_Properties->AppendIn(m_GeneralProperties, new wxStringProperty(_("Scale"),
 			wxPG_LABEL, "<composed>"));
 		m_Properties->AppendIn(scale, new wxFloatProperty(_("x"), wxPG_LABEL, _scale.X));
 		m_Properties->AppendIn(scale, new wxFloatProperty(_("y"), wxPG_LABEL, _scale.Y));
@@ -112,12 +132,12 @@ void PropertyPanel::Refresh(void)
 		switch (m_SceneNode->getType())
 		{
 		case irr::scene::ESNT_CUBE:
-			m_Properties->Append(new wxFloatProperty(_("Size"), wxPG_LABEL,
+			m_Properties->AppendIn(m_GeneralProperties, new wxFloatProperty(_("Size"), wxPG_LABEL,
 				attribs->getAttributeAsFloat("Size")));
 			break;
 		case irr::scene::ESNT_SPHERE:
 		{
-			wxPGProperty* size = m_Properties->Append(new wxStringProperty(_("Size"),
+			wxPGProperty* size = m_Properties->AppendIn(m_GeneralProperties, new wxStringProperty(_("Size"),
 				wxPG_LABEL, "<composed>"));
 			m_Properties->AppendIn(size, new wxFloatProperty(_("radius"), wxPG_LABEL, 
 				attribs->getAttributeAsFloat("Radius")));
@@ -129,7 +149,7 @@ void PropertyPanel::Refresh(void)
 		} break;
 		case ESNT_CYLINDER:
 		{
-			wxPGProperty* size = m_Properties->Append(new wxStringProperty(_("Size"),
+			wxPGProperty* size = m_Properties->AppendIn(m_GeneralProperties, new wxStringProperty(_("Size"),
 				wxPG_LABEL, "<composed>"));
 			m_Properties->AppendIn(size, new wxFloatProperty(_("radius"), wxPG_LABEL, 
 				attribs->getAttributeAsFloat("Radius")));
@@ -145,13 +165,13 @@ void PropertyPanel::Refresh(void)
 			const irr::core::dimension2df _tileSize(size.X, size.Y);
 			const irr::core::dimension2du _tileCount(attribs->getAttributeAsDimension2d("TileCount"));
 
-			wxPGProperty* count = m_Properties->Append(new wxStringProperty(_("Tile Count"),
+			wxPGProperty* count = m_Properties->AppendIn(m_GeneralProperties, new wxStringProperty(_("Tile Count"),
 				wxPG_LABEL, "<composed>"));
 			m_Properties->AppendIn(count, new wxUIntProperty(_("x"), wxPG_LABEL, _tileCount.Width));
 			m_Properties->AppendIn(count, new wxUIntProperty(_("y"), wxPG_LABEL, _tileCount.Height));
 			m_Properties->Collapse(count);
 
-			wxPGProperty* sizeProp = m_Properties->Append(new wxStringProperty(_("Tile Size"),
+			wxPGProperty* sizeProp = m_Properties->AppendIn(m_GeneralProperties, new wxStringProperty(_("Tile Size"),
 				wxPG_LABEL, "<composed>"));
 			m_Properties->AppendIn(sizeProp, new wxFloatProperty(_("x"), wxPG_LABEL, _tileSize.Width));
 			m_Properties->AppendIn(sizeProp, new wxFloatProperty(_("y"), wxPG_LABEL, _tileSize.Height));
@@ -159,11 +179,11 @@ void PropertyPanel::Refresh(void)
 		} break;
 		case irr::scene::ESNT_LIGHT:
 		{
-			m_Properties->Append(new wxFloatProperty(_("Radius"), wxPG_LABEL,
+			m_Properties->AppendIn(m_GeneralProperties, new wxFloatProperty(_("Radius"), wxPG_LABEL,
 				attribs->getAttributeAsFloat("Radius")));
 
 			irr::video::SColorf color = attribs->getAttributeAsColor("AmbientColor");
-			wxPGProperty* ambient = m_Properties->Append(
+			wxPGProperty* ambient = m_Properties->AppendIn(m_GeneralProperties,
 				new wxStringProperty(_("Ambient"), wxPG_LABEL, "<composed>"));
 			m_Properties->AppendIn(ambient, new wxUIntProperty(_("Alpha"), wxPG_LABEL,
 				color.a));
@@ -176,7 +196,7 @@ void PropertyPanel::Refresh(void)
 			m_Properties->Collapse(ambient);
 
 			color = attribs->getAttributeAsColor("DiffuseColor");
-			wxPGProperty* diffuse = m_Properties->Append(
+			wxPGProperty* diffuse = m_Properties->AppendIn(m_GeneralProperties,
 				new wxStringProperty(_("Diffuse"), wxPG_LABEL, "<composed>"));
 			m_Properties->AppendIn(diffuse, new wxUIntProperty(_("Alpha"), wxPG_LABEL,
 				color.a));
@@ -189,7 +209,7 @@ void PropertyPanel::Refresh(void)
 			m_Properties->Collapse(diffuse);
 
 			color = attribs->getAttributeAsColor("SpecularColor");
-			wxPGProperty* specular = m_Properties->Append(
+			wxPGProperty* specular = m_Properties->AppendIn(m_GeneralProperties,
 				new wxStringProperty(_("Specular"), wxPG_LABEL, "<composed>"));
 			m_Properties->AppendIn(specular, new wxUIntProperty(_("Alpha"), wxPG_LABEL,
 				color.a));
@@ -203,13 +223,13 @@ void PropertyPanel::Refresh(void)
 		} break;
 		case irr::scene::ESNT_SKY_DOME:
 		{
-			m_Properties->Append(new wxFloatProperty(_("Radius"), wxPG_LABEL,
+			m_Properties->AppendIn(m_GeneralProperties, new wxFloatProperty(_("Radius"), wxPG_LABEL,
 				attribs->getAttributeAsFloat("Radius")));
-			m_Properties->Append(new wxFloatProperty(_("Arc"), wxPG_LABEL,
+			m_Properties->AppendIn(m_GeneralProperties, new wxFloatProperty(_("Arc"), wxPG_LABEL,
 				attribs->getAttributeAsFloat("SpherePercentage")));
-			m_Properties->Append(new wxIntProperty(_("HorizontalResolution"), wxPG_LABEL,
+			m_Properties->AppendIn(m_GeneralProperties, new wxIntProperty(_("HorizontalResolution"), wxPG_LABEL,
 				attribs->getAttributeAsInt("HorizontalResolution")));
-			m_Properties->Append(new wxIntProperty(_("VerticalResolution"), wxPG_LABEL,
+			m_Properties->AppendIn(m_GeneralProperties, new wxIntProperty(_("VerticalResolution"), wxPG_LABEL,
 				attribs->getAttributeAsInt("VerticalResolution")));
 		} break;
 		case ESNT_PATHNODE:
@@ -267,20 +287,13 @@ void PropertyPanel::Refresh(void)
 			if (nextNode)
 				nextChoices->SetValueFromString(wxString(nextNode->getName()));
 
-			m_Properties->Append(pathChoices);
-			m_Properties->Append(prevChoices);
-			m_Properties->Append(nextChoices);
+			m_Properties->AppendIn(m_GeneralProperties, pathChoices);
+			m_Properties->AppendIn(m_GeneralProperties, prevChoices);
+			m_Properties->AppendIn(m_GeneralProperties, nextChoices);
 		} break;
 		}
 
 		attribs->drop();
-
-		// read the custom attributes
-		attribs = m_Map->GetAttributes(m_SceneNode->getName());
-		if (attribs)
-		{
-			// @TODO
-		}
 
 		// materials
 		irr::u32 numMaterials = m_SceneNode->getMaterialCount();
@@ -305,11 +318,11 @@ void PropertyPanel::Refresh(void)
 
 				//m_Properties->Append(new TextureProperty(j, wxString::Format(_("Texture%d"), j + 1),
 				//	wxPG_LABEL, texName));
-				m_Properties->Append(new wxStringProperty(wxString::Format(_("Texture%d"), j + 1),
+				m_Properties->AppendIn(m_GeneralProperties, new wxStringProperty(wxString::Format(_("Texture%d"), j + 1),
 					wxPG_LABEL, texName));
 			}
 
-			wxPGProperty* ambient = m_Properties->Append(
+			wxPGProperty* ambient = m_Properties->AppendIn(m_GeneralProperties,
 				new wxStringProperty(_("Ambient"), wxPG_LABEL, "<composed>"));
 			m_Properties->AppendIn(ambient, new wxUIntProperty(_("Alpha"), wxPG_LABEL, 
 				mat.AmbientColor.getAlpha()));
@@ -321,7 +334,7 @@ void PropertyPanel::Refresh(void)
 				mat.AmbientColor.getBlue()));
 			m_Properties->Collapse(ambient);
 
-			wxPGProperty* diffuse = m_Properties->Append(
+			wxPGProperty* diffuse = m_Properties->AppendIn(m_GeneralProperties,
 				new wxStringProperty(_("Diffuse"), wxPG_LABEL, "<composed>"));
 			m_Properties->AppendIn(diffuse, new wxUIntProperty(_("Alpha"), wxPG_LABEL,
 				mat.DiffuseColor.getAlpha()));
@@ -333,7 +346,7 @@ void PropertyPanel::Refresh(void)
 				mat.DiffuseColor.getBlue()));
 			m_Properties->Collapse(diffuse);
 
-			wxPGProperty* emissive = m_Properties->Append(
+			wxPGProperty* emissive = m_Properties->AppendIn(m_GeneralProperties,
 				new wxStringProperty(_("Emissive"), wxPG_LABEL, "<composed>"));
 			m_Properties->AppendIn(emissive, new wxUIntProperty(_("Alpha"), wxPG_LABEL,
 				mat.EmissiveColor.getAlpha()));
@@ -345,7 +358,7 @@ void PropertyPanel::Refresh(void)
 				mat.EmissiveColor.getBlue()));
 			m_Properties->Collapse(emissive);
 
-			wxPGProperty* specular = m_Properties->Append(
+			wxPGProperty* specular = m_Properties->AppendIn(m_GeneralProperties,
 				new wxStringProperty(_("Specular"), wxPG_LABEL, "<composed>"));
 			m_Properties->AppendIn(specular, new wxUIntProperty(_("Alpha"), wxPG_LABEL,
 				mat.SpecularColor.getAlpha()));
@@ -357,8 +370,101 @@ void PropertyPanel::Refresh(void)
 				mat.SpecularColor.getBlue()));
 			m_Properties->Collapse(specular);
 
-			m_Properties->Append(
+			m_Properties->AppendIn(m_GeneralProperties,
 				new wxFloatProperty(_("Shininess"), wxPG_LABEL, mat.Shininess));
+		}
+
+		// read the custom attributes
+		attribs = m_Map->GetAttributes(m_SceneNode->getName());
+		if (attribs)
+		{
+			for (irr::u32 i = 0; i < attribs->getAttributeCount(); ++i)
+			{
+				wxString name = attribs->getAttributeName(i);
+				PropertyClientData* clientData = new PropertyClientData(attribs->getAttributeType(i));
+				switch (clientData->m_Type)
+				{
+				case irr::io::EAT_STRING:
+				{
+					wxStringProperty* property = new wxStringProperty(name, wxPG_LABEL,
+						attribs->getAttributeAsString(i).c_str());
+					property->SetClientData(clientData);
+					m_Properties->AppendIn(m_CustomProperties, property);
+				} break;
+				case irr::io::EAT_VECTOR3D:
+				{
+					irr::core::vector3df vec = attribs->getAttributeAsVector3d(i);
+					wxPGProperty* property = m_Properties->AppendIn(m_CustomProperties, 
+						new wxStringProperty(name, wxPG_LABEL, "<composed>"));
+					wxFloatProperty* x = new wxFloatProperty(_("x"), wxPG_LABEL, vec.X);
+					x->SetClientData(clientData);
+					wxFloatProperty* y = new wxFloatProperty(_("y"), wxPG_LABEL, vec.Y);
+					y->SetClientData(clientData);
+					wxFloatProperty* z = new wxFloatProperty(_("z"), wxPG_LABEL, vec.Z);
+					z->SetClientData(clientData);
+					m_Properties->AppendIn(property, x);
+					m_Properties->AppendIn(property, y);
+					m_Properties->AppendIn(property, z);
+					m_Properties->Collapse(property);
+					property->SetClientData(clientData);
+				} break;
+				case irr::io::EAT_VECTOR2D:
+				{
+					irr::core::vector2df vec = attribs->getAttributeAsVector2d(i);
+					wxPGProperty* property = m_Properties->AppendIn(m_CustomProperties, 
+						new wxStringProperty(name, wxPG_LABEL, "<composed>"));
+					wxFloatProperty* x = new wxFloatProperty(_("x"), wxPG_LABEL, vec.X);
+					x->SetClientData(clientData);
+					wxFloatProperty* y = new wxFloatProperty(_("y"), wxPG_LABEL, vec.Y);
+					y->SetClientData(clientData);
+					m_Properties->AppendIn(property, x);
+					m_Properties->AppendIn(property, y);
+					m_Properties->Collapse(property);
+					property->SetClientData(clientData);
+				} break;
+				case irr::io::EAT_COLOR:
+				{
+					irr::video::SColor color = attribs->getAttributeAsColor(i);
+					wxPGProperty* property = m_Properties->AppendIn(m_CustomProperties, 
+						new wxStringProperty(name, wxPG_LABEL, "<composed>"));
+					wxUIntProperty* alpha = new wxUIntProperty(_("Alpha"), wxPG_LABEL, color.getAlpha());
+					alpha->SetClientData(clientData);
+					wxUIntProperty* red = new wxUIntProperty(_("Red"), wxPG_LABEL, color.getRed());
+					red->SetClientData(clientData);
+					wxUIntProperty* green = new wxUIntProperty(_("Green"), wxPG_LABEL, color.getGreen());
+					green->SetClientData(clientData);
+					wxUIntProperty* blue = new wxUIntProperty(_("Blue"), wxPG_LABEL, color.getBlue());
+					blue->SetClientData(clientData);
+					m_Properties->AppendIn(property, alpha);
+					m_Properties->AppendIn(property, red);
+					m_Properties->AppendIn(property, green);
+					m_Properties->AppendIn(property, blue);
+					m_Properties->Collapse(property);
+					property->SetClientData(clientData);
+				} break;
+				case irr::io::EAT_FLOAT:
+				{
+					wxFloatProperty* property = new wxFloatProperty(name, wxPG_LABEL,
+						attribs->getAttributeAsFloat(i));
+					property->SetClientData(clientData);
+					m_Properties->AppendIn(m_CustomProperties, property);
+				} break;
+				case irr::io::EAT_BOOL:
+				{
+					wxBoolProperty* property = new wxBoolProperty(name, wxPG_LABEL,
+						attribs->getAttributeAsBool(i));
+					property->SetClientData(clientData);
+					m_Properties->AppendIn(m_CustomProperties, property);
+				} break;
+				case irr::io::EAT_INT:
+				{
+					wxIntProperty* property = new wxIntProperty(name, wxPG_LABEL,
+						attribs->getAttributeAsInt(i));
+					property->SetClientData(clientData);
+					m_Properties->AppendIn(m_CustomProperties, property);
+				} break;
+				}
+			}
 		}
 	}
 	else // refresh the children
@@ -419,6 +525,26 @@ irr::core::vector3df valueToVec3(const wxString& value)
 	_token.ToDouble(&_z);
 
 	return irr::core::vector3df(_x, _y, _z);
+}
+
+irr::core::vector2df valueToVec2(const wxString& value)
+{
+	std::istringstream iss(value.utf8_string());
+	std::string token;
+
+	// X
+	double _x = 0;
+	std::getline(iss, token, ';');
+	wxString _token(token);
+	_token.ToDouble(&_x);
+
+	// Y
+	double _y = 0;
+	std::getline(iss, token, ';');
+	_token.assign(token);
+	_token.ToDouble(&_y);
+
+	return irr::core::vector2df(_x, _y);
 }
 
 irr::core::dimension2df valueToDim2df(const wxString& value)
@@ -650,6 +776,37 @@ void PropertyPanel::OnValueChanged(wxPropertyGridEvent& event)
 				pathNode->setPathName(other->getPathName());
 				pathNode->drawLink(true);
 			}
+		}
+	}
+	else
+	{
+		// custom property
+		irr::io::IAttributes* attribs = m_Map->GetAttributes(m_SceneNode->getName());
+		wxPGProperty* property = event.GetProperty();
+		PropertyClientData* clientData = static_cast<PropertyClientData*>(property->GetClientData());
+		switch (clientData->m_Type)
+		{
+		case irr::io::EAT_STRING:
+			attribs->setAttribute(property->GetName(), event.GetValue().GetString().c_str().AsChar());
+			break;
+		case irr::io::EAT_VECTOR3D:
+			attribs->setAttribute(property->GetName(), valueToVec3(event.GetValue()));
+			break;
+		case irr::io::EAT_VECTOR2D:
+			attribs->setAttribute(property->GetName(), valueToVec2(event.GetValue()));
+			break;
+		case irr::io::EAT_COLOR:
+			attribs->setAttribute(property->GetName(), valueToColor(event.GetValue()));
+			break;
+		case irr::io::EAT_FLOAT:
+			attribs->setAttribute(property->GetName(), (float)event.GetValue().GetDouble());
+			break;
+		case irr::io::EAT_BOOL:
+			attribs->setAttribute(property->GetName(), event.GetValue().GetBool());
+			break;
+		case irr::io::EAT_INT:
+			attribs->setAttribute(property->GetName(), (int)event.GetValue().GetLong());
+			break;
 		}
 	}
 }

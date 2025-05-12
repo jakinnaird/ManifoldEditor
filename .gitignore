@@ -1,5 +1,6 @@
 # global
 .vs
+.vscode/
 
 *.exe
 *.dll
@@ -12,6 +13,9 @@
 *.so*
 
 bin/ManifoldEditor*
+
+*.mpk
+!editor.mpk
 
 # specific
 msw/obj

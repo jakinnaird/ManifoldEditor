@@ -119,6 +119,7 @@ public:
 	void OnToolPlayerStart(wxCommandEvent& event);
 	void OnToolLight(wxCommandEvent& event);
 	void OnToolPathNode(wxCommandEvent& event);
+	void OnToolActor(wxCommandEvent& event);
 
 	void OnEditCut(wxCommandEvent& event);
 	void OnEditCopy(wxCommandEvent& event);

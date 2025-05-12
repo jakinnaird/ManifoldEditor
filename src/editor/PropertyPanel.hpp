@@ -25,6 +25,8 @@ private:
 	wxCommandProcessor& m_Commands;
 	wxToolBar* m_ToolBar;
 	wxPropertyGrid* m_Properties;
+	wxPGProperty* m_GeneralProperties;
+	wxPGProperty* m_CustomProperties;
 
 	irr::scene::ISceneNode* m_SceneNode;
 

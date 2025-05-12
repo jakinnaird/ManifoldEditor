@@ -54,6 +54,8 @@ public:
 	void SwitchTo(int pageNumber);
 
 	const wxString& GetTexture(void);
+	const wxString& GetActor(void);
+	wxString GetActorDefinition(const wxString& name);
 
 private:
 	void OnCloseEvent(wxCloseEvent& event);
@@ -121,11 +123,14 @@ private:
 
 	wxFileName m_DefinitionFile;
 
+	wxString m_Selected;
+
 public:
 	ActorBrowser(wxWindow* parent);
 	~ActorBrowser(void);
 
-	//const wxString& GetSelection(void);
+	const wxString& GetSelection(void);
+	wxString GetDefinition(const wxString& name);
 
 private:
 	void OnToolAdd(wxCommandEvent& event);
@@ -134,6 +139,7 @@ private:
 	void OnToolSaveAs(wxCommandEvent& event);
 
 	void OnItemActivate(wxTreeEvent& event);
+	void OnItemSelected(wxTreeEvent& event);
 
 private:
 	void AddActor(wxXmlNode* actor);

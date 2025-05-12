@@ -25,6 +25,8 @@ enum TOOLID : int
     TOOL_PLAYERSTART,
     TOOL_LIGHT,
     TOOL_PATHNODE,
+    TOOL_ACTOR,
+    TOOL_IRRLICHT_ID, // used to determine if the TOOLID is an Irrlicht ID
 
     TOOL_PACKAGEMANAGER,
     TOOL_BROWSER,

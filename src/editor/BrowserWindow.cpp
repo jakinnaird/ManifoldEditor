@@ -80,6 +80,16 @@ const wxString& BrowserWindow::GetTexture(void)
 	return m_Textures->GetSelection();
 }
 
+const wxString& BrowserWindow::GetActor(void)
+{
+	return m_Actors->GetSelection();
+}
+
+wxString BrowserWindow::GetActorDefinition(const wxString& name)
+{
+	return m_Actors->GetDefinition(name);
+}
+
 void BrowserWindow::OnCloseEvent(wxCloseEvent& event)
 {
 	if (event.CanVeto())
@@ -503,9 +513,14 @@ public:
 		wxEditEnumProperty* category = new wxEditEnumProperty(
 			_("Category"), wxPG_LABEL, m_ActorCategories, wxArrayInt());
 		m_Properties->AppendIn(m_GeneralProperties, category);
-		// mesh
-		wxStringProperty* mesh = new wxStringProperty(_("Mesh"));
-		m_Properties->AppendIn(m_GeneralProperties, mesh);
+		// type
+		wxArrayString typeChoices;
+		typeChoices.Add(_("Model"));
+		typeChoices.Add(_("Emitter"));
+		typeChoices.Add(_("Custom"));
+		wxEditEnumProperty* type = new wxEditEnumProperty(_("Type"), 
+			wxPG_LABEL, typeChoices, wxArrayInt());
+		m_Properties->AppendIn(m_GeneralProperties, type);
 
 		if (data)
 		{
@@ -519,8 +534,9 @@ public:
 			category->SetValueFromString(root->GetAttribute(wxT("Category"),
 				root->GetAttribute(wxT("category"))));
 			category->ChangeFlag(wxPG_PROP_READONLY, true);
-			mesh->SetValueFromString(root->GetAttribute(wxT("Mesh"),
-				root->GetAttribute(wxT("mesh"))));
+			type->SetValueFromString(root->GetAttribute(wxT("Type"),
+				root->GetAttribute(wxT("type"))));
+			type->ChangeFlag(wxPG_PROP_READONLY, true);
 
 			wxXmlNode* child = root->GetChildren();
 			while (child)
@@ -547,6 +563,7 @@ public:
 		Bind(wxEVT_MENU, &EditActorDialog::OnToolRemove, this, wxID_REMOVE);
 		m_Properties->Bind(wxEVT_PG_LABEL_EDIT_BEGIN, &EditActorDialog::OnLabelEditBegin,
 			this);
+		m_Properties->Bind(wxEVT_PG_CHANGED, &EditActorDialog::OnPropertyChanged, this);
 	}
 
 	~EditActorDialog(void)
@@ -611,6 +628,42 @@ public:
 			event.Veto(); // we do not allow editing labels under General
 	}
 
+	void OnPropertyChanged(wxPropertyGridEvent& event)
+	{
+		wxPGProperty* prop = event.GetProperty();
+		if (prop->GetLabel().CompareTo(_("Type"), wxString::ignoreCase) == 0)
+		{
+			// Add mesh and texture custom properties if type is Model
+			if (prop->GetValueAsString().CompareTo(_("Model"), wxString::ignoreCase) == 0)
+			{
+				// remove emitter custom properties
+				RemoveCustomAttribute(_("Emitter"));
+
+				// add mesh and texture custom properties
+				AddCustomAttribute(_("String"), _("Mesh"));
+				AddCustomAttribute(_("String"), _("Texture"));
+			}
+			else if (prop->GetValueAsString().CompareTo(_("Emitter"), wxString::ignoreCase) == 0)
+			{
+				// remove mesh and texture custom properties
+				RemoveCustomAttribute(_("Mesh"));
+				RemoveCustomAttribute(_("Texture"));
+
+				// add emitter custom properties
+				AddCustomAttribute(_("String"), _("Emitter"));
+			}
+			else if (prop->GetValueAsString().CompareTo(_("Custom"), wxString::ignoreCase) == 0)
+			{
+				// remove mesh and texture custom properties
+				RemoveCustomAttribute(_("Mesh"));
+				RemoveCustomAttribute(_("Texture"));
+
+				// remove emitter custom properties
+				RemoveCustomAttribute(_("Emitter"));
+			}
+		}
+	}
+
 	void OnToolAdd(wxCommandEvent& event)
 	{
 		wxArrayString propertyChoices;
@@ -638,7 +691,7 @@ public:
 			wxString selection = dialog.GetStringSelection();
 			AddCustomAttribute(selection, propName);
 
-			m_Properties->Expand(m_CustomProperties);
+			// m_Properties->Expand(m_CustomProperties);
 		}
 	}
 
@@ -709,6 +762,15 @@ public:
 			prop->SetValueFromString(value);
 			m_Properties->Collapse(prop);
 		}
+
+		m_Properties->Expand(m_CustomProperties);
+	}
+
+	void RemoveCustomAttribute(const wxString& name)
+	{
+		wxPGProperty* prop = m_Properties->GetPropertyByName(name);
+		if (prop)
+			m_Properties->DeleteProperty(prop);
 	}
 };
 
@@ -744,15 +806,30 @@ ActorBrowser::ActorBrowser(wxWindow* parent)
 	Bind(wxEVT_MENU, &ActorBrowser::OnToolSave, this, wxID_SAVE);
 	Bind(wxEVT_MENU, &ActorBrowser::OnToolSaveAs, this, wxID_SAVEAS);
 	m_Tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &ActorBrowser::OnItemActivate, this);
+	m_Tree->Bind(wxEVT_TREE_SEL_CHANGED, &ActorBrowser::OnItemSelected, this);
 }
 
 ActorBrowser::~ActorBrowser(void)
 {
 }
 
-//const wxString& ActorBrowser::GetSelection(void)
-//{
-//}
+const wxString& ActorBrowser::GetSelection(void)
+{
+	return m_Selected;
+}
+
+wxString ActorBrowser::GetDefinition(const wxString& name)
+{
+	wxTreeItemId actorId = FindItem(name, m_Root);
+	if (actorId.IsOk())
+	{
+		ActorItemData* data = dynamic_cast<ActorItemData*>(m_Tree->GetItemData(actorId));
+		if (data)
+			return data->Definition;
+	}
+
+	return wxEmptyString;
+}
 
 void ActorBrowser::OnToolAdd(wxCommandEvent& event)
 {
@@ -866,6 +943,19 @@ void ActorBrowser::OnItemActivate(wxTreeEvent& event)
 		event.Skip();
 }
 
+void ActorBrowser::OnItemSelected(wxTreeEvent& event)
+{
+	wxTreeItemId item = event.GetItem();
+	if (item.IsOk() &&
+		item != m_Root &&
+		!m_Tree->HasChildren(item))
+	{
+		m_Selected = m_Tree->GetItemText(item);
+	}
+	else
+		m_Selected = wxEmptyString;
+}
+
 void ActorBrowser::AddActor(wxXmlNode* actor)
 {
 	if (actor->GetName().CompareTo(wxT("Actor"), wxString::ignoreCase) == 0)
@@ -898,6 +988,7 @@ void ActorBrowser::AddActor(wxXmlNode* actor)
 
 wxTreeItemId ActorBrowser::FindItem(const wxString& name, wxTreeItemId& start)
 {
+	// First check direct children
 	wxTreeItemIdValue cookie;
 	wxTreeItemId item = m_Tree->GetFirstChild(start, cookie);
 	while (item.IsOk())
@@ -905,6 +996,11 @@ wxTreeItemId ActorBrowser::FindItem(const wxString& name, wxTreeItemId& start)
 		wxString itemName = m_Tree->GetItemText(item);
 		if (itemName.CompareTo(name, wxString::ignoreCase) == 0)
 			return item;
+
+		// Recursively search children of this item
+		wxTreeItemId found = FindItem(name, item);
+		if (found.IsOk())
+			return found;
 
 		item = m_Tree->GetNextSibling(item);
 	}

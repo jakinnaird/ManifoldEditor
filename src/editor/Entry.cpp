@@ -138,9 +138,9 @@ public:
 			SetTopWindow(mainWindow);
 			
 			// default to a map editor
-			//wxString fileToLoad(wxT("*.mmp"));
+			wxString fileToLoad(wxT("*.mmp"));
 			// default to a project editor
-			wxString fileToLoad(wxT("*.mep"));
+			// wxString fileToLoad(wxT("*.mep"));
 
 			// see if we want to load a file
 			wxCmdLineParser params(wxApp::argc, wxApp::argv);

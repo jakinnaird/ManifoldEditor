@@ -26,7 +26,8 @@ protected:
 	std::shared_ptr<Map> m_Map;
 	irr::core::vector3df m_Position;
 	wxString m_Name;
-
+	wxString m_Actor;
+	
 public:
 	AddNodeCommand(TOOLID toolId,
 		ExplorerPanel* explorerPanel,

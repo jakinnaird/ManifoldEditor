@@ -46,6 +46,11 @@ void ExplorerPanel::SetViewPanel(ViewPanel* viewPanel)
 	Bind(wxEVT_MENU, &ViewPanel::OnMenuSetTexture, m_ViewPanel, MENU_SETTEXTURE);
 }
 
+BrowserWindow* ExplorerPanel::GetBrowser(void)
+{
+	return m_Browser;
+}
+
 void ExplorerPanel::SetSceneManager(irr::scene::ISceneManager* sceneMgr)
 {
 	m_SceneMgr = sceneMgr;

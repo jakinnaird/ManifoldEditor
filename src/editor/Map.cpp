@@ -100,6 +100,10 @@ void Map::Save(const wxFileName& fileName)
 			if (node->getID() & NID_NOSAVE)
 				continue;
 
+			// if the node has debug data turned on, store it for later and turn it off while saving
+			irr::u32 debugData = node->isDebugDataVisible();
+			node->setDebugDataVisible(irr::scene::EDS_OFF);
+
 			irr::io::IAttributes* attributes = m_SceneMgr->getFileSystem()->createEmptyAttributes();
 			node->serializeAttributes(attributes, &opts);
 			
@@ -138,6 +142,9 @@ void Map::Save(const wxFileName& fileName)
 					break;
 				}
 			}
+
+			// restore the debug data
+			node->setDebugDataVisible(debugData);
 
 			serializer->Next(type, attributes, materials, animators, userData, child);
 		}
@@ -217,9 +224,68 @@ void Map::Load(irr::scene::ISceneNode* mapRoot,
 			animators[i]->drop();
 		}
 
+		// create a triangle selector if one doesn't exist, typically used by actors
+		if (!node->getTriangleSelector())
+		{
+			irr::scene::ITriangleSelector* selector = nullptr;
+			if (node->getType() == irr::scene::ESNT_MESH)
+				selector = m_SceneMgr->createTriangleSelector(
+					static_cast<irr::scene::IMeshSceneNode*>(node)->getMesh(), node);
+			else if (node->getType() == irr::scene::ESNT_ANIMATED_MESH)
+				selector = m_SceneMgr->createTriangleSelector(
+					static_cast<irr::scene::IAnimatedMeshSceneNode*>(node)->getMesh(), node);
+			else
+				selector = m_SceneMgr->createTriangleSelectorFromBoundingBox(node);
+
+			if (selector)
+			{
+				node->setTriangleSelector(selector);
+				selector->drop();
+			}
+		}
+
+		// set the custom attributes
+		irr::io::IAttributes* attribs = GetAttributes(name);
+		if (attribs)
+		{
+			for (irr::u32 i = 0; i < userData->getAttributeCount(); ++i)
+			{
+				switch (userData->getAttributeType(i))
+				{
+				case irr::io::EAT_STRING:
+					attribs->addString(userData->getAttributeName(i), 
+						userData->getAttributeAsString(i).c_str());
+					break;
+				case irr::io::EAT_VECTOR3D:
+					attribs->addVector3d(userData->getAttributeName(i), 
+						userData->getAttributeAsVector3d(i));
+					break;
+				case irr::io::EAT_VECTOR2D:
+					attribs->addVector2d(userData->getAttributeName(i), 
+						userData->getAttributeAsVector2d(i));
+					break;
+				case irr::io::EAT_COLOR:
+					attribs->addColor(userData->getAttributeName(i), 
+						userData->getAttributeAsColor(i));
+					break;
+				case irr::io::EAT_FLOAT:
+					attribs->addFloat(userData->getAttributeName(i), 
+						userData->getAttributeAsFloat(i));
+					break;
+				case irr::io::EAT_INT:
+					attribs->addInt(userData->getAttributeName(i), 
+						userData->getAttributeAsInt(i));
+					break;
+				case irr::io::EAT_BOOL:
+					attribs->addBool(userData->getAttributeName(i), 
+						userData->getAttributeAsBool(i));
+					break;
+				}
+			}
+		}
+
 		materials.clear();
 		attributes->clear();
-		//userData = m_SceneMgr->getFileSystem()->createEmptyAttributes(m_SceneMgr->getVideoDriver());
 	}
 
 	serializer->Finalize();

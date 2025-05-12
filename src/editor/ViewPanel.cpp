@@ -113,6 +113,7 @@ ViewPanel::ViewPanel(wxWindow* parent, wxCommandProcessor& cmdProc,
 	Bind(wxEVT_MENU, &ViewPanel::OnToolPlayerStart, this, TOOL_PLAYERSTART);
 	Bind(wxEVT_MENU, &ViewPanel::OnToolLight, this, TOOL_LIGHT);
 	Bind(wxEVT_MENU, &ViewPanel::OnToolPathNode, this, TOOL_PATHNODE);
+	Bind(wxEVT_MENU, &ViewPanel::OnToolActor, this, TOOL_ACTOR);
 	Bind(wxEVT_MENU, &ViewPanel::OnMenuFreeLook, this, MENU_FREELOOK);
 	Bind(wxEVT_MENU, &ViewPanel::OnMenuSetTexture, this, MENU_SETTEXTURE);
 }
@@ -820,6 +821,10 @@ void ViewPanel::OnMouse(wxMouseEvent& event)
 			popupMenu.Append(TOOL_LIGHT, _("Add light"));
 			popupMenu.Append(TOOL_PATHNODE, _("Add path node"));
 
+			const wxString& actor = m_Browser->GetActor();
+			if (!actor.empty())
+				popupMenu.Append(TOOL_ACTOR, wxString::Format(_("Add actor: %s"), actor));
+
 			if (m_ActiveView == VIEW_3D)
 			{
 				popupMenu.AppendSeparator();
@@ -1054,6 +1059,19 @@ void ViewPanel::OnToolPathNode(wxCommandEvent& event)
 	m_Commands.Submit(new AddNodeCommand(TOOL_PATHNODE, m_ExplorerPanel,
 		m_RenderDevice->getSceneManager(), m_MapRoot, m_Map,
 		location, m_Map->NextName(wxT("pathnode"))));
+}
+
+void ViewPanel::OnToolActor(wxCommandEvent& event)
+{
+	// get the 3D camera and create the item directly in front of it
+	irr::core::vector3df pos = m_View[VIEW_3D]->getAbsolutePosition();
+	irr::core::vector3df target = m_View[VIEW_3D]->getTarget();
+	irr::core::line3df ray(pos, target);
+
+	irr::core::vector3df location = ray.getMiddle();
+	m_Commands.Submit(new AddNodeCommand(TOOL_ACTOR, 
+		m_ExplorerPanel, m_RenderDevice->getSceneManager(), m_MapRoot,
+		m_Map, location, m_Browser->GetActor()));
 }
 
 void ViewPanel::OnEditCut(wxCommandEvent& event)
