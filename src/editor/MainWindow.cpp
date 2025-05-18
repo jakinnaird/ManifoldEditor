@@ -49,7 +49,10 @@ MainWindow::MainWindow(void)
 
     m_AuiMgr.SetManagedWindow(this);
 
+    m_AudioSystem.reset(new AudioSystem());
+
     m_Browser = new BrowserWindow(this);
+    m_Browser->SetAudioSystem(m_AudioSystem);
     m_PackageManager = new PackageManager(this);
 
     m_ActiveEditor = nullptr;
@@ -189,6 +192,8 @@ MainWindow::~MainWindow(void)
 
     m_Browser->Destroy();
     m_PackageManager->Destroy();
+
+    m_AudioSystem.reset();
 }
 
 void MainWindow::LoadFile(const wxString& filePath)

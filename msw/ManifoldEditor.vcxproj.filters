@@ -96,6 +96,9 @@
     <ClCompile Include="..\thirdparty\ktkr3d\CGUITTFont.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\editor\AudioSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\editor\MainWindow.hpp">
@@ -177,6 +180,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\editor\MpkFSHandler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\editor\AudioSystem.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

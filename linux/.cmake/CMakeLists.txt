@@ -11,6 +11,7 @@ find_package(PkgConfig REQUIRED)
 pkg_search_module(GTK3 REQUIRED gtk+-3.0)
 
 add_executable(ManifoldEditor
+    ../../src/editor/AudioSystem.cpp
     ../../src/editor/BrowserWindow.cpp
     ../../src/editor/CGridSceneNode.cpp
     ../../src/editor/Commands.cpp
@@ -47,7 +48,8 @@ target_include_directories(ManifoldEditor PRIVATE
     ../../src/editor
     ../../src/extend
     ../../thirdparty/ktkr3d
-    ../../thirdparty/irrlicht-1.8.5/include)
+    ../../thirdparty/irrlicht-1.8.5/include
+    ../../thirdparty/miniaudio-0.11.22)
 
 target_compile_options(ManifoldEditor PRIVATE ${GTK3_CFLAGS_OTHER} -fPIE)
 SET(CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath='$ORIGIN'")

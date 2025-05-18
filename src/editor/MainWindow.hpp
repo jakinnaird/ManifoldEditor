@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "AudioSystem.hpp"
 #include "BrowserWindow.hpp"
 #include "Editor.hpp"
 #include "MapEditor.hpp"
@@ -29,6 +30,8 @@ private:
 	Editor* m_ActiveEditor;
 
 	int m_LastFPS;
+
+	std::shared_ptr<AudioSystem> m_AudioSystem;
 
 public:
 	MainWindow(void);

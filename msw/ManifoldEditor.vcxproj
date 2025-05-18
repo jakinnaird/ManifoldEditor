@@ -108,7 +108,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;__WXDEBUG__;__WXMSW__;WINVER=0x0500;_WINDOWS;WXUSINGDLL;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\thirdparty\freetype-2.13.3\include;..\thirdparty\irrlicht-1.8.5\include;..\thirdparty\ktkr3d;..\thirdparty\wxwidgets-3.2.4\include;..\thirdparty\wxwidgets-3.2.4\include\msvc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\thirdparty\freetype-2.13.3\include;..\thirdparty\irrlicht-1.8.5\include;..\thirdparty\ktkr3d;..\thirdparty\miniaudio-0.11.22;..\thirdparty\wxwidgets-3.2.4\include;..\thirdparty\wxwidgets-3.2.4\include\msvc</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -140,6 +140,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\editor\AudioSystem.cpp" />
     <ClCompile Include="..\src\editor\BrowserWindow.cpp" />
     <ClCompile Include="..\src\editor\CGridSceneNode.cpp" />
     <ClCompile Include="..\src\editor\Commands.cpp" />
@@ -169,6 +170,7 @@
     <ClCompile Include="..\thirdparty\ktkr3d\CGUITTFont.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\editor\AudioSystem.hpp" />
     <ClInclude Include="..\src\editor\BrowserWindow.hpp" />
     <ClInclude Include="..\src\editor\CGridSceneNode.h" />
     <ClInclude Include="..\src\editor\Commands.hpp" />

@@ -24,6 +24,8 @@
 
 #include "irrlicht.h"
 
+#include "AudioSystem.hpp"
+
 class TextureBrowser;
 class ActorBrowser;
 class SoundBrowser;
@@ -50,6 +52,7 @@ public:
 	~BrowserWindow(void);
 
 	void SetRenderDevice(irr::IrrlichtDevice* renderDevice);
+	void SetAudioSystem(std::shared_ptr<AudioSystem>& audioSystem);
 
 	void SwitchTo(int pageNumber);
 
@@ -163,9 +166,13 @@ private:
 	typedef std::map<long, wxString> itempath_t;
 	itempath_t m_ItemPaths;
 
+	std::shared_ptr<AudioSystem> m_AudioSystem;
+
 public:
 	SoundBrowser(wxWindow* parent);
 	~SoundBrowser(void);
+
+	void SetAudioSystem(std::shared_ptr<AudioSystem>& audioSystem);
 
 private:
 	void OnToolAdd(wxCommandEvent& event);
@@ -173,5 +180,5 @@ private:
 	void OnToolPlay(wxCommandEvent& event);
 	void OnToolStop(wxCommandEvent& event);
 
-	void OnItemActivate(wxTreeEvent& event);
+	void OnItemActivate(wxListEvent& event);
 };

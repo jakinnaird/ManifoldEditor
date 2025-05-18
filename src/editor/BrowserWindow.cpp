@@ -58,6 +58,11 @@ void BrowserWindow::SetRenderDevice(irr::IrrlichtDevice* renderDevice)
 	m_Textures->SetRenderDevice(renderDevice);
 }
 
+void BrowserWindow::SetAudioSystem(std::shared_ptr<AudioSystem>& audioSystem)
+{
+	m_Sounds->SetAudioSystem(audioSystem);
+}
+
 void BrowserWindow::SwitchTo(int pageNumber)
 {
 	m_Notebook->SetSelection(pageNumber);
@@ -1053,10 +1058,16 @@ SoundBrowser::SoundBrowser(wxWindow* parent)
 	Bind(wxEVT_MENU, &SoundBrowser::OnToolOpen, this, wxID_OPEN);
 	Bind(wxEVT_MENU, &SoundBrowser::OnToolPlay, this, MENU_PLAYSOUND);
 	Bind(wxEVT_MENU, &SoundBrowser::OnToolStop, this, MENU_STOPSOUND);
+	m_List->Bind(wxEVT_LIST_ITEM_ACTIVATED, &SoundBrowser::OnItemActivate, this);
 }
 
 SoundBrowser::~SoundBrowser(void)
 {
+}
+
+void SoundBrowser::SetAudioSystem(std::shared_ptr<AudioSystem>& audioSystem)
+{
+	m_AudioSystem = audioSystem;
 }
 
 void SoundBrowser::OnToolAdd(wxCommandEvent& event)
@@ -1079,14 +1090,15 @@ void SoundBrowser::OnToolOpen(wxCommandEvent& event)
 		.Foreground(*wxBLACK)
 		.Background(*wxWHITE));
 
-	wxString path(openDialog.GetPath());
-	wxFileInputStream inStream(path);
+	// wxString path(openDialog.GetPath());
+	wxFileName path(openDialog.GetPath());
+	wxFileInputStream inStream(path.GetFullPath());
 	if (inStream.IsOk())
 	{
 		wxZipInputStream zipStream(inStream);
 		if (!zipStream.IsOk())
 		{
-			wxLogWarning(_("Unsupported archive: %s"), path);
+			wxLogWarning(_("Unsupported archive: %s"), path.GetFullPath());
 			return;
 		}
 
@@ -1102,7 +1114,12 @@ void SoundBrowser::OnToolOpen(wxCommandEvent& event)
 				entryPath.StartsWith(wxT("music\\")))
 			{
 				// build the full path
-				wxString sndPath(path);
+				wxString sndPath(path.GetFullPath());
+				if (path.GetExt().CmpNoCase(wxT("zip")) == 0)
+					sndPath.append(wxT("#zip"));
+				else if (path.GetExt().CmpNoCase(wxT("mpk")) == 0)
+					sndPath.append(wxT("#mpk"));
+
 				sndPath.append(wxT(":"));
 				sndPath.append(entryPath);
 
@@ -1138,12 +1155,25 @@ void SoundBrowser::OnToolOpen(wxCommandEvent& event)
 
 void SoundBrowser::OnToolPlay(wxCommandEvent& event)
 {
+	long index = m_List->GetFocusedItem();
+	if (index != -1)
+	{
+		m_AudioSystem->stopSound(); // stop any currently playing sound
+		m_AudioSystem->playSound(m_ItemPaths[index]);
+	}
 }
 
 void SoundBrowser::OnToolStop(wxCommandEvent& event)
 {
+	m_AudioSystem->stopSound();
 }
 
-void SoundBrowser::OnItemActivate(wxTreeEvent& event)
+void SoundBrowser::OnItemActivate(wxListEvent& event)
 {
+	long index = event.GetIndex();
+	if (index != -1)
+	{
+		m_AudioSystem->stopSound(); // stop any currently playing sound
+		m_AudioSystem->playSound(m_ItemPaths[index]);
+	}
 }

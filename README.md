@@ -87,6 +87,8 @@ john@suckerfreegames.com
 
 [wxWidgets 3.2.4](thirdparty/wxWidgets-3.2.4/docs/licence.txt)
 
+[miniaudio 0.11.22](thirdparty/miniaudio-0.11.22/miniaudio.h)
+
 ## FlatIcons
 
 Portions of this software use the following icons
