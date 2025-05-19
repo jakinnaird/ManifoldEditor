@@ -1144,7 +1144,10 @@ void SoundBrowser::OnToolOpen(wxCommandEvent& event)
 					m_List->SetItem(index, COL_TYPE, _("Unknown"));
 
 				// get the meta data for the item
-
+				uint32_t sampleRate, channels;
+				m_AudioSystem->getSoundMetadata(sndPath, sampleRate, channels);
+				m_List->SetItem(index, COL_CHANNELS, wxString::Format(_("%d"), channels));
+				m_List->SetItem(index, COL_FREQ, wxString::Format(_("%d"), sampleRate));
 			}
 
 			entry->UnRef();

@@ -135,13 +135,13 @@ void AudioSystem::playSound(const wxString& location)
     }
 
     // Prepare stream data for miniaudio
-    m_streamData = std::make_unique<StreamData>();
+    m_streamData.reset(new StreamData());
     m_streamData->stream = std::move(stream);
     m_streamData->location = location;
 
     // Setup decoder config
     ma_decoder_config decoderConfig = ma_decoder_config_init(ma_format_f32, 2, 44100);
-    m_decoder = std::make_unique<ma_decoder>();
+    m_decoder.reset(new ma_decoder);
     if (ma_decoder_init(wx_read_proc, wx_seek_proc, m_streamData.get(), &decoderConfig, m_decoder.get()) != MA_SUCCESS)
     {
         m_decoder.reset();
@@ -165,4 +165,43 @@ void AudioSystem::stopSound()
 void AudioSystem::update()
 {
     // No-op for now. Could be used for polling or cleanup if needed.
+}
+
+void AudioSystem::getSoundMetadata(const wxString& location, uint32_t& sampleRate, uint32_t& channels)
+{
+    sampleRate = 0;
+    channels = 0;
+
+    // Open file via wxFileSystem (supports zip, etc)
+    wxFileSystem fileSystem;
+    std::unique_ptr<wxFSFile> fsFile(fileSystem.OpenFile(location));
+    if (!fsFile)
+    {
+        wxLogWarning(_("Failed to open file: %s"), location.c_str());
+        return;
+    }
+
+    std::unique_ptr<wxInputStream> stream(fsFile->DetachStream());
+    if (!stream)
+    {
+        wxLogWarning(_("Failed to open file: %s"), location.c_str());
+        return;
+    }
+
+    m_streamData.reset(new StreamData());
+    m_streamData->stream = std::move(stream);
+    m_streamData->location = location;
+
+    // Get the sound metadata
+    ma_decoder decoder;
+    if (ma_decoder_init(wx_read_proc, wx_seek_proc, m_streamData.get(), nullptr, &decoder) != MA_SUCCESS)
+    {
+        wxLogWarning(_("Failed to initialize decoder for file: %s"), location.c_str());
+        return;
+    }
+
+    sampleRate = decoder.outputSampleRate;
+    channels = decoder.outputChannels;
+    ma_decoder_uninit(&decoder);
+    m_streamData.reset();
 }

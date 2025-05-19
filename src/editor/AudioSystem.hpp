@@ -37,6 +37,9 @@ public:
     // Optional: call to update audio system if needed
     void update();
 
+    // Get the sound metadata
+    void getSoundMetadata(const wxString& location, uint32_t& sampleRate, uint32_t& channels);
+
 private:
     void initDevice();
     void shutdownDevice();
