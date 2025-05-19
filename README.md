@@ -89,6 +89,7 @@ john@suckerfreegames.com
 
 [miniaudio 0.11.22](thirdparty/miniaudio-0.11.22/miniaudio.h)
 
+
 ## FlatIcons
 
 Portions of this software use the following icons
@@ -140,3 +141,7 @@ Portions of this software use the following icons
 Portions of this software use the following models
 
 <a href="https://www.thingiverse.com/thing:5900141/files" title="Mensch-Ärgere-Dich-Nicht-Spielfigur">Mensch-Ärgere-Dich-Nicht-Spielfigur - TeutonicResin</a>
+
+## Thirdparty Utilities
+
+[doxygen 1.13.2 custom msw build](https://www.doxygen.nl/manual/index.html)
