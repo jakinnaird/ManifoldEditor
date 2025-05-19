@@ -26,6 +26,7 @@ var class_main_window =
     [ "OnToolAction", "class_main_window.html#a434078b18a3dd83710681f72354c5d00", null ],
     [ "OnToolsActorBrowser", "class_main_window.html#ac164c990a94eab7f56d573af94d16f68", null ],
     [ "OnToolsEntityBrowser", "class_main_window.html#acf0ee16fa5b42f01b815c1fa58b5cd58", null ],
+    [ "OnToolsMeshBrowser", "class_main_window.html#a80c352fd47574ef99e9ed2a1ed93b833", null ],
     [ "OnToolsPackageManager", "class_main_window.html#a8906c987c5d3afc840f1cb609cce00d9", null ],
     [ "OnToolsSoundBrowser", "class_main_window.html#a39af21de38575eed4195ca8e09c7602b", null ],
     [ "OnToolsTextureBrowser", "class_main_window.html#ad9b0e85d2a9adce77b50ed8b81679244", null ],

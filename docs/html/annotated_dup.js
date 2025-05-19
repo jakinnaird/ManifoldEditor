@@ -33,6 +33,7 @@ var annotated_dup =
     [ "ManifoldEditor", "class_manifold_editor.html", null ],
     [ "Map", "class_map.html", null ],
     [ "MapEditor", "class_map_editor.html", "class_map_editor" ],
+    [ "MeshBrowser", "class_mesh_browser.html", null ],
     [ "MmpLoad", "class_mmp_load.html", null ],
     [ "MmpSave", "class_mmp_save.html", null ],
     [ "MpkFSHandler", "class_mpk_f_s_handler.html", null ],

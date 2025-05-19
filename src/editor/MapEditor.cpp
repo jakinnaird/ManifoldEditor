@@ -134,6 +134,13 @@ MapEditor::MapEditor(MainWindow* parent, wxMenu* editMenu,
     advancedTools->AddTool(TOOL_SOUNDBROWSER, _("Sound Browser"), wxBitmapBundle::FromBitmaps(soundTool),
         _("Sound Browser"));
 
+    wxVector<wxBitmap> meshTool;
+    meshTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/tunnel32.png", wxBITMAP_TYPE_PNG));
+    meshTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/tunnel48.png", wxBITMAP_TYPE_PNG));
+    meshTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/tunnel64.png", wxBITMAP_TYPE_PNG));
+    advancedTools->AddTool(TOOL_MESHBROWSER, _("Mesh Browser"), wxBitmapBundle::FromBitmaps(meshTool),
+        _("Mesh Browser"));
+
     wxVector<wxBitmap> lightTool;
     lightTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/light32.png", wxBITMAP_TYPE_PNG));
     lightTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/light48.png", wxBITMAP_TYPE_PNG));

@@ -106,11 +106,9 @@ $(function(){initNavTree('class_texture_browser.html',''); initResizable(true); 
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
-<a href="#pub-static-methods">Static Public Member Functions</a> &#124;
 <a href="#pri-types">Private Types</a> &#124;
 <a href="#pri-methods">Private Member Functions</a> &#124;
 <a href="#pri-attribs">Private Attributes</a> &#124;
-<a href="#pri-static-attribs">Static Private Attributes</a> &#124;
 <a href="class_texture_browser-members.html">List of all members</a>  </div>
   <div class="headertitle"><div class="title">TextureBrowser Class Reference</div></div>
 </div><!--header-->
@@ -139,17 +137,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>SetRenderDevice</b> (
 const wxString &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>GetSelection</b> (void)</td></tr>
 <tr class="separator:a413e9a33bbe71b99c9ce3ab40e6d0e72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
-Static Public Member Functions</h2></td></tr>
-<tr class="memitem:a62318bbb6db154ad70c9f2ec000d3f19" id="r_a62318bbb6db154ad70c9f2ec000d3f19"><td class="memItemLeft" align="right" valign="top"><a id="a62318bbb6db154ad70c9f2ec000d3f19" name="a62318bbb6db154ad70c9f2ec000d3f19"></a>
-static void&#160;</td><td class="memItemRight" valign="bottom"><b>AddPackage</b> (const wxString &amp;path)</td></tr>
-<tr class="separator:a62318bbb6db154ad70c9f2ec000d3f19"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pri-types" name="pri-types"></a>
 Private Types</h2></td></tr>
-<tr class="memitem:afb48ce949dbc87ed49d9fee6df980df8" id="r_afb48ce949dbc87ed49d9fee6df980df8"><td class="memItemLeft" align="right" valign="top"><a id="afb48ce949dbc87ed49d9fee6df980df8" name="afb48ce949dbc87ed49d9fee6df980df8"></a>
-typedef std::list&lt; wxString &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>packagelist_t</b></td></tr>
-<tr class="separator:afb48ce949dbc87ed49d9fee6df980df8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2091d7b14993ac4721878354a8b2b7e2" id="r_a2091d7b14993ac4721878354a8b2b7e2"><td class="memItemLeft" align="right" valign="top"><a id="a2091d7b14993ac4721878354a8b2b7e2" name="a2091d7b14993ac4721878354a8b2b7e2"></a>
 typedef std::vector&lt; <a class="el" href="struct_texture_browser_1_1_texture_entry.html">TextureEntry</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>textures_t</b></td></tr>
 <tr class="separator:a2091d7b14993ac4721878354a8b2b7e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -204,12 +193,6 @@ wxString&#160;</td><td class="memItemRight" valign="bottom"><b>m_Selected</b></t
 <tr class="memitem:a59baa30fa253a1a332e1cbb183b2a60a" id="r_a59baa30fa253a1a332e1cbb183b2a60a"><td class="memItemLeft" align="right" valign="top"><a id="a59baa30fa253a1a332e1cbb183b2a60a" name="a59baa30fa253a1a332e1cbb183b2a60a"></a>
 irr::IrrlichtDevice *&#160;</td><td class="memItemRight" valign="bottom"><b>m_RenderDevice</b></td></tr>
 <tr class="separator:a59baa30fa253a1a332e1cbb183b2a60a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pri-static-attribs" name="pri-static-attribs"></a>
-Static Private Attributes</h2></td></tr>
-<tr class="memitem:a55e5b2a7a96db58d3e6b955a48b5da11" id="r_a55e5b2a7a96db58d3e6b955a48b5da11"><td class="memItemLeft" align="right" valign="top"><a id="a55e5b2a7a96db58d3e6b955a48b5da11" name="a55e5b2a7a96db58d3e6b955a48b5da11"></a>
-static packagelist_t&#160;</td><td class="memItemRight" valign="bottom"><b>ms_Packages</b></td></tr>
-<tr class="separator:a55e5b2a7a96db58d3e6b955a48b5da11"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this class was generated from the following files:<ul>
 <li>src/editor/<a class="el" href="_browser_window_8hpp_source.html">BrowserWindow.hpp</a></li>

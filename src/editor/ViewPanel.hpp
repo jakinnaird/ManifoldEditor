@@ -274,6 +274,12 @@ public:
 	void OnToolActor(wxCommandEvent& event);
 
 	/**
+	 * @brief Handle mesh tool action
+	 * @param event The command event
+	 */
+	void OnToolMesh(wxCommandEvent& event);
+
+	/**
 	 * @brief Handle cut action
 	 * @param event The command event
 	 */

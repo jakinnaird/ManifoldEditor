@@ -24,6 +24,8 @@
 #include <wx/wfstream.h>
 #include <wx/zipstrm.h>
 
+BrowserWindow::packagelist_t BrowserWindow::ms_Packages;
+
 BrowserWindow::BrowserWindow(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, wxEmptyString)
 {
@@ -36,10 +38,12 @@ BrowserWindow::BrowserWindow(wxWindow* parent)
 	m_Actors = new ActorBrowser(m_Notebook);
 	m_Textures = new TextureBrowser(m_Notebook);
 	m_Sounds = new SoundBrowser(m_Notebook);
+	m_Meshes = new MeshBrowser(m_Notebook);
 
-	m_Notebook->InsertPage(PAGE_ACTORS, m_Actors, _("Actors"), false);
-	m_Notebook->InsertPage(PAGE_TEXTURES, m_Textures, _("Textures"), true);
-	m_Notebook->InsertPage(PAGE_SOUNDS, m_Sounds, _("Sounds"), false);
+	m_Notebook->InsertPage(PAGE_ACTORS, m_Actors, _("Actor"), false);
+	m_Notebook->InsertPage(PAGE_TEXTURES, m_Textures, _("Texture"), true);
+	m_Notebook->InsertPage(PAGE_SOUNDS, m_Sounds, _("Sound"), false);
+	m_Notebook->InsertPage(PAGE_MESHES, m_Meshes, _("Mesh"), false);
 
 	sizer->Add(m_Notebook, wxSizerFlags(9).Expand());
 	this->SetSizerAndFit(sizer);
@@ -77,6 +81,9 @@ void BrowserWindow::SwitchTo(int pageNumber)
 	case PAGE_SOUNDS:
 		SetTitle(_("Sound Browser"));
 		break;
+	case PAGE_MESHES:
+		SetTitle(_("Mesh Browser"));
+		break;
 	}
 }
 
@@ -93,6 +100,23 @@ const wxString& BrowserWindow::GetActor(void)
 wxString BrowserWindow::GetActorDefinition(const wxString& name)
 {
 	return m_Actors->GetDefinition(name);
+}
+
+const wxString& BrowserWindow::GetMesh(void)
+{
+	return m_Meshes->GetSelection();
+}
+
+void BrowserWindow::AddPackage(const wxString& path)
+{
+	for (packagelist_t::iterator i = ms_Packages.begin();
+		i != ms_Packages.end(); ++i)
+	{
+		if ((*i) == path)
+			return; // already exists
+	}
+
+	ms_Packages.push_back(path);
 }
 
 void BrowserWindow::OnCloseEvent(wxCloseEvent& event)
@@ -161,10 +185,10 @@ void TextureBrowser::SetRenderDevice(irr::IrrlichtDevice* renderDevice)
 	if (m_RenderDevice)
 	{
 		// did we pre-load any packages?
-		if (ms_Packages.size() > 0)
+		if (BrowserWindow::ms_Packages.size() > 0)
 		{
-			for (packagelist_t::iterator i = ms_Packages.begin();
-				i != ms_Packages.end(); ++i)
+			for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+				i != BrowserWindow::ms_Packages.end(); ++i)
 			{
 				LoadPackage(*i, true);
 			}
@@ -175,36 +199,17 @@ void TextureBrowser::SetRenderDevice(irr::IrrlichtDevice* renderDevice)
 	}
 }
 
-void TextureBrowser::AddPackage(const wxString& path)
-{
-	for (packagelist_t::iterator i = ms_Packages.begin();
-		i != ms_Packages.end(); ++i)
-	{
-		if ((*i) == path)
-			return; // already exists
-	}
-
-	ms_Packages.push_back(path);
-}
-
 bool TextureBrowser::LoadPackage(const wxString& path, bool preload)
 {
 	if (!preload)
 	{
-		for (packagelist_t::iterator i = ms_Packages.begin();
-			i != ms_Packages.end(); ++i)
+		for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+			i != BrowserWindow::ms_Packages.end(); ++i)
 		{
 			if ((*i) == path)
 				return true; // already exists
 		}
 	}
-
-	wxBusyInfo wait(wxBusyInfoFlags()
-		.Parent(this)
-		.Title(_("Opening package"))
-		.Text(_("Please wait..."))
-		.Foreground(*wxBLACK)
-		.Background(*wxWHITE));
 
 	wxFileInputStream inStream(path);
 	if (inStream.IsOk())
@@ -217,7 +222,7 @@ bool TextureBrowser::LoadPackage(const wxString& path, bool preload)
 		}
 
 		if (!preload)
-			ms_Packages.push_back(path);
+			BrowserWindow::ms_Packages.push_back(path);
 
 		wxZipEntry* entry = zipStream.GetNextEntry();
 		while (entry)
@@ -325,6 +330,13 @@ void TextureBrowser::OnToolOpen(wxCommandEvent& event)
 	if (openFile.ShowModal() == wxID_CANCEL)
 		return;
 
+	wxBusyInfo wait(wxBusyInfoFlags()
+		.Parent(this)
+		.Title(_("Opening package"))
+		.Text(_("Please wait..."))
+		.Foreground(*wxBLACK)
+		.Background(*wxWHITE));
+
 	if (LoadPackage(openFile.GetPath()))
 	{
 		ResizePreview();
@@ -408,8 +420,6 @@ void TextureBrowser::ScrollTo(const wxString& image)
 	if (i != m_TextureMap.end())
 		m_Preview->Scroll(wxPoint(0, i->second->clickMap.y));
 }
-
-TextureBrowser::packagelist_t TextureBrowser::ms_Packages;
 
 class PropertyType : public wxClientData
 {
@@ -812,6 +822,12 @@ ActorBrowser::ActorBrowser(wxWindow* parent)
 	Bind(wxEVT_MENU, &ActorBrowser::OnToolSaveAs, this, wxID_SAVEAS);
 	m_Tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &ActorBrowser::OnItemActivate, this);
 	m_Tree->Bind(wxEVT_TREE_SEL_CHANGED, &ActorBrowser::OnItemSelected, this);
+
+	// for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+	// 	i != BrowserWindow::ms_Packages.end(); ++i)
+	// {
+	// 	LoadPackage(*i, true);
+	// }
 }
 
 ActorBrowser::~ActorBrowser(void)
@@ -1048,6 +1064,7 @@ SoundBrowser::SoundBrowser(wxWindow* parent)
 	m_List->AppendColumn(_("Type"));
 	m_List->AppendColumn(_("Channels"));
 	m_List->AppendColumn(_("Frequency"));
+	m_List->AppendColumn(_("Package"));
 
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(tools, wxSizerFlags(1).Expand());
@@ -1068,38 +1085,41 @@ SoundBrowser::~SoundBrowser(void)
 void SoundBrowser::SetAudioSystem(std::shared_ptr<AudioSystem>& audioSystem)
 {
 	m_AudioSystem = audioSystem;
+	if (m_AudioSystem)
+	{
+		// did we pre-load any packages?
+		if (BrowserWindow::ms_Packages.size() > 0)
+		{
+			for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+				i != BrowserWindow::ms_Packages.end(); ++i)
+			{
+				LoadPackage(*i, true);
+			}
+		}
+	}
 }
 
-void SoundBrowser::OnToolAdd(wxCommandEvent& event)
+bool SoundBrowser::LoadPackage(const wxString& path, bool preload)
 {
-}
+	if (!preload)
+	{
+		for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+			i != BrowserWindow::ms_Packages.end(); ++i)
+		{
+			if ((*i) == path)
+				return true; // already exists
+		}
+	}
 
-void SoundBrowser::OnToolOpen(wxCommandEvent& event)
-{
-	wxFileDialog openDialog(this,
-		_("Open package"), wxEmptyString, wxEmptyString,
-		_("Manifold Archive Package (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip"),
-		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	if (openDialog.ShowModal() == wxID_CANCEL)
-		return; // not opening today
-
-	wxBusyInfo wait(wxBusyInfoFlags()
-		.Parent(this)
-		.Title(_("Opening package"))
-		.Text(_("Please wait..."))
-		.Foreground(*wxBLACK)
-		.Background(*wxWHITE));
-
-	// wxString path(openDialog.GetPath());
-	wxFileName path(openDialog.GetPath());
-	wxFileInputStream inStream(path.GetFullPath());
+	wxFileName _path(path);
+	wxFileInputStream inStream(_path.GetFullPath());
 	if (inStream.IsOk())
 	{
 		wxZipInputStream zipStream(inStream);
 		if (!zipStream.IsOk())
 		{
-			wxLogWarning(_("Unsupported archive: %s"), path.GetFullPath());
-			return;
+			wxLogWarning(_("Unsupported archive: %s"), _path.GetFullPath());
+			return false;
 		}
 
 		wxZipEntry* entry = zipStream.GetNextEntry();
@@ -1114,11 +1134,11 @@ void SoundBrowser::OnToolOpen(wxCommandEvent& event)
 				entryPath.StartsWith(wxT("music\\")))
 			{
 				// build the full path
-				wxString sndPath(path.GetFullPath());
-				if (path.GetExt().CmpNoCase(wxT("zip")) == 0)
+				wxString sndPath(_path.GetFullPath());
+				if (_path.GetExt().CmpNoCase(wxT("zip")) == 0)
 					sndPath.append(wxT("#zip"));
-				else if (path.GetExt().CmpNoCase(wxT("mpk")) == 0)
-					sndPath.append(wxT("#mpk"));
+				// else if (path.GetExt().CmpNoCase(wxT("mpk")) == 0)
+				// 	sndPath.append(wxT("#mpk"));
 
 				sndPath.append(wxT(":"));
 				sndPath.append(entryPath);
@@ -1148,12 +1168,38 @@ void SoundBrowser::OnToolOpen(wxCommandEvent& event)
 				m_AudioSystem->getSoundMetadata(sndPath, sampleRate, channels);
 				m_List->SetItem(index, COL_CHANNELS, wxString::Format(_("%d"), channels));
 				m_List->SetItem(index, COL_FREQ, wxString::Format(_("%d"), sampleRate));
+				m_List->SetItem(index, COL_PACKAGE, _path.GetFullPath());
 			}
 
 			entry->UnRef();
 			entry = zipStream.GetNextEntry();
 		}
 	}
+
+	return true;
+}
+
+void SoundBrowser::OnToolAdd(wxCommandEvent& event)
+{
+}
+
+void SoundBrowser::OnToolOpen(wxCommandEvent& event)
+{
+	wxFileDialog openDialog(this,
+		_("Open package"), wxEmptyString, wxEmptyString,
+		_("Manifold Archive Package (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip"),
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openDialog.ShowModal() == wxID_CANCEL)
+		return; // not opening today
+
+	wxBusyInfo wait(wxBusyInfoFlags()
+		.Parent(this)
+		.Title(_("Opening package"))
+		.Text(_("Please wait..."))
+		.Foreground(*wxBLACK)
+		.Background(*wxWHITE));
+
+	LoadPackage(openDialog.GetPath(), false);
 }
 
 void SoundBrowser::OnToolPlay(wxCommandEvent& event)
@@ -1179,4 +1225,151 @@ void SoundBrowser::OnItemActivate(wxListEvent& event)
 		m_AudioSystem->stopSound(); // stop any currently playing sound
 		m_AudioSystem->playSound(m_ItemPaths[index]);
 	}
+}
+
+MeshBrowser::MeshBrowser(wxWindow* parent)
+	: wxPanel(parent)
+{
+	// create the toolbar
+	wxToolBar* tools = new wxToolBar(this, wxID_ANY, wxDefaultPosition,
+		wxDefaultSize, wxTB_FLAT | wxTB_HORIZONTAL);
+	tools->AddTool(wxID_NEW, _("Add"), wxArtProvider::GetBitmap(wxART_NEW),
+		_("Add mesh"));
+	tools->AddTool(wxID_OPEN, _("Open"), wxArtProvider::GetBitmap(wxART_FILE_OPEN),
+		_("Open package"));
+	tools->Realize();
+
+	m_List = new wxListView(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+		wxLC_REPORT | wxLC_VRULES);
+	m_List->AppendColumn(_("Path"));
+	m_List->AppendColumn(_("Type"));
+	m_List->AppendColumn(_("Package"));
+
+	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+	sizer->Add(tools, wxSizerFlags(1).Expand());
+	sizer->Add(m_List, wxSizerFlags(9).Expand());
+	this->SetSizerAndFit(sizer);
+
+	Bind(wxEVT_MENU, &MeshBrowser::OnToolAdd, this, wxID_NEW);
+	Bind(wxEVT_MENU, &MeshBrowser::OnToolOpen, this, wxID_OPEN);
+	m_List->Bind(wxEVT_LIST_ITEM_SELECTED, &MeshBrowser::OnItemSelected, this);
+
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		LoadPackage(*i, true);
+	}
+}
+
+MeshBrowser::~MeshBrowser(void)
+{
+}
+
+bool MeshBrowser::LoadPackage(const wxString& path, bool preload)
+{
+	if (!preload)
+	{
+		for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+			i != BrowserWindow::ms_Packages.end(); ++i)
+		{
+			if ((*i) == path)
+				return true; // already exists
+		}
+	}
+
+	wxFileName _path(path);
+	wxFileInputStream inStream(_path.GetFullPath());
+	if (inStream.IsOk())
+	{
+		wxZipInputStream zipStream(inStream);
+		if (!zipStream.IsOk())
+		{
+			wxLogWarning(_("Unsupported archive: %s"), _path.GetFullPath());
+			return false;
+		}
+
+		wxZipEntry* entry = zipStream.GetNextEntry();
+		while (entry)
+		{
+			wxString entryPath(entry->GetName());
+
+			// support archives made on any platform
+			if (entryPath.StartsWith(wxT("mesh/")) ||
+				entryPath.StartsWith(wxT("mesh\\")) ||
+				entryPath.StartsWith(wxT("models/")) ||
+				entryPath.StartsWith(wxT("models\\")))
+			{
+				// build the full path
+				wxString meshPath(_path.GetFullPath());
+				if (_path.GetExt().CmpNoCase(wxT("zip")) == 0)
+					meshPath.append(wxT("#zip"));
+				// else if (_path.GetExt().CmpNoCase(wxT("mpk")) == 0)
+				// 	meshPath.append(wxT("#mpk"));
+
+				meshPath.append(wxT(":"));
+				meshPath.append(entryPath);
+
+				// add this to the list
+				long index = m_List->InsertItem(m_List->GetItemCount(), entry->GetName());
+				m_List->SetItemData(index, -1);
+				m_ItemPaths[index] = meshPath;
+
+				wxFileName fn(entry->GetName());
+				wxFileType* mimeType = wxTheMimeTypesManager->GetFileTypeFromExtension(fn.GetExt());
+				if (mimeType)
+				{
+					wxString type;
+					if (mimeType->GetMimeType(&type))
+						m_List->SetItem(index, COL_TYPE, type);
+					else
+						m_List->SetItem(index, COL_TYPE, _("Unknown"));
+
+					delete mimeType;
+				}
+				else
+					m_List->SetItem(index, COL_TYPE, _("Unknown"));
+
+				m_List->SetItem(index, COL_PACKAGE, _path.GetFullPath());
+			}
+
+			entry->UnRef();
+			entry = zipStream.GetNextEntry();
+		}
+	}
+
+	return true;
+}
+
+void MeshBrowser::OnToolAdd(wxCommandEvent& event)
+{
+}
+
+void MeshBrowser::OnToolOpen(wxCommandEvent& event)
+{
+	wxFileDialog openDialog(this,
+		_("Open package"), wxEmptyString, wxEmptyString,
+		_("Manifold Archive Package (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip"),
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openDialog.ShowModal() == wxID_CANCEL)
+		return; // not opening today
+
+	wxBusyInfo wait(wxBusyInfoFlags()
+		.Parent(this)
+		.Title(_("Opening package"))
+		.Text(_("Please wait..."))
+		.Foreground(*wxBLACK)
+		.Background(*wxWHITE));
+
+	LoadPackage(openDialog.GetPath(), false);	
+}
+
+void MeshBrowser::OnItemSelected(wxListEvent& event)
+{
+	wxFileName selection(m_List->GetItemText(event.GetIndex()));
+	m_Selected = selection.GetName();
+}
+
+const wxString& MeshBrowser::GetSelection(void)
+{
+	return m_Selected;
 }

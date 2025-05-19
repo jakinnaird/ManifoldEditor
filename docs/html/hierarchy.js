@@ -89,6 +89,7 @@ var hierarchy =
         [ "ScriptEditor", "class_script_editor.html", null ]
       ] ],
       [ "ExplorerPanel", "class_explorer_panel.html", null ],
+      [ "MeshBrowser", "class_mesh_browser.html", null ],
       [ "ProjectExplorer", "class_project_explorer.html", null ],
       [ "PropertyPanel", "class_property_panel.html", null ],
       [ "SoundBrowser", "class_sound_browser.html", null ],

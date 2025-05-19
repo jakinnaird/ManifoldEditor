@@ -11,6 +11,7 @@
 #endif
 
 #include <wx/cmdline.h>
+#include <wx/dir.h>
 #include <wx/fileconf.h>
 #include <wx/filefn.h>
 #include <wx/filesys.h>
@@ -94,49 +95,76 @@ public:
 			static wxFileTypeInfo engineMimeTypes[] = 
 			{
 				// models
-				{ wxT("model/3ds"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".3ds") },	// doesn't seem to work
-				{ wxT("model/b3d"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".b3d") },
-				{ wxT("model/md2"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".md2") },
-				{ wxT("model/md3"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".md3") },
-				{ wxT("model/mdl"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".mdl") },
-				{ wxT("model/obj"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".obj") },
-				{ wxT("model/X"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".x") },		// doesn't seem to work
+				{ wxT("model/3ds"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("3ds") },
+				{ wxT("model/b3d"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("b3d") },
+				{ wxT("model/md2"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("md2") },
+				{ wxT("model/md3"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("md3") },
+				{ wxT("model/mdl"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("mdl") },
+				{ wxT("model/obj"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("obj") },
+				{ wxT("model/X"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("x") },
 
 				// sounds
-				//{ wxT("audio/mp3"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("mp3") },
-				//{ wxT("audio/ogg"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("ogg") },
-				//{ wxT("audio/wav"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("wav") },
+				{ wxT("audio/mp3"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("mp3") },
+				{ wxT("audio/ogg"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("ogg") },
+				{ wxT("audio/wav"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("wav") },
 
 				// maps
-				{ wxT("map/irrlicht"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".irr") },
-				{ wxT("map/manifold"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".mmp") },
+				{ wxT("map/irrlicht"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("irr") },
+				{ wxT("map/manifold"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("mmp") },
 
 				// packages
-				{ wxT("package/manifold"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".mpk") },
+				{ wxT("package/manifold"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("mpk") },
 
 				// scripts
-				//{ wxT("text/javascript"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("js") },
+				{ wxT("text/javascript"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("js") },
 
 				// shaders - we only support 
-				{ wxT("shader/vertex"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".vert"), wxT(".vsh"), wxNullPtr },
-				{ wxT("shader/pixel"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".frag"), wxT(".psh"), wxNullPtr },
-				{ wxT("shader/hlsl"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".hlsl") },
+				{ wxT("shader/vertex"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("vert"), wxT("vsh"), wxNullPtr },
+				{ wxT("shader/pixel"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("frag"), wxT("psh"), wxNullPtr },
+				{ wxT("shader/hlsl"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("hlsl") },
 
 				// textures
-				{ wxT("image/tga"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".tga") },
+				{ wxT("image/tga"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("tga") },
 
 				// language translations
-				{ wxT("lang/mo"), wxEmptyString, wxEmptyString, wxEmptyString, wxT(".mo") },
+				{ wxT("lang/mo"), wxEmptyString, wxEmptyString, wxEmptyString, wxT("mo") },
 
 				// end the list
 				wxFileTypeInfo()
 			};
 			wxTheMimeTypesManager->AddFallbacks(engineMimeTypes);
 
+			// preload all the packages
+			wxString entry;
+			long cookie;
+			wxConfigPathChanger cpc(config, wxString::Format(wxT("/Paths/")));
+			if (config->GetFirstEntry(entry, cookie))
+			{
+				do
+				{
+					wxString path = config->Read(entry);
+					wxDir dir(path);
+					if (dir.IsOpened())
+					{
+						wxString filename;
+						bool cont = dir.GetFirst(&filename, wxEmptyString, wxDIR_FILES);
+						while (cont)
+						{
+							wxFileName fn(path, filename);
+							if (fn.GetExt().CmpNoCase(wxT("mpk")) == 0 ||
+								fn.GetExt().CmpNoCase(wxT("zip")) == 0)
+								BrowserWindow::AddPackage(fn.GetFullPath());
+
+							cont = dir.GetNext(&filename);
+						}
+					}
+				} while (config->GetNextEntry(entry, cookie));
+			}
+
 			MainWindow* mainWindow = new MainWindow();
 			mainWindow->Show(true);
 			SetTopWindow(mainWindow);
-			
+
 			// default to a map editor
 			wxString fileToLoad(wxT("*.mmp"));
 			// default to a project editor

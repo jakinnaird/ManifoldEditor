@@ -825,6 +825,10 @@ void ViewPanel::OnMouse(wxMouseEvent& event)
 			if (!actor.empty())
 				popupMenu.Append(TOOL_ACTOR, wxString::Format(_("Add actor: %s"), actor));
 
+			const wxString& mesh = m_Browser->GetMesh();
+			if (!mesh.empty())
+				popupMenu.Append(TOOL_MESH, wxString::Format(_("Add mesh: %s"), mesh));
+
 			if (m_ActiveView == VIEW_3D)
 			{
 				popupMenu.AppendSeparator();
@@ -1072,6 +1076,11 @@ void ViewPanel::OnToolActor(wxCommandEvent& event)
 	m_Commands.Submit(new AddNodeCommand(TOOL_ACTOR, 
 		m_ExplorerPanel, m_RenderDevice->getSceneManager(), m_MapRoot,
 		m_Map, location, m_Browser->GetActor()));
+}
+
+void ViewPanel::OnToolMesh(wxCommandEvent& event)
+{
+	wxLogMessage(_("Not implemented"));
 }
 
 void ViewPanel::OnEditCut(wxCommandEvent& event)

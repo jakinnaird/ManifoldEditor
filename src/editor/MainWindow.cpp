@@ -97,6 +97,7 @@ MainWindow::MainWindow(void)
     menuTools->Append(TOOL_ACTORBROWSER, _("Show Actor Browser"), nullptr, _("Open the actor browser"));
     menuTools->Append(TOOL_TEXTUREBROWSER, _("Show Texture Browser"), nullptr, _("Open the texture browser"));
     menuTools->Append(TOOL_SOUNDBROWSER, _("Show Sound Browser"), nullptr, _("Open the sound browser"));
+    menuTools->Append(TOOL_MESHBROWSER, _("Show Mesh Browser"), nullptr, _("Open the mesh browser"));
 
     wxMenu* menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
@@ -180,6 +181,7 @@ MainWindow::MainWindow(void)
     Bind(wxEVT_MENU, &MainWindow::OnToolsActorBrowser, this, TOOL_ACTORBROWSER);
     Bind(wxEVT_MENU, &MainWindow::OnToolsTextureBrowser, this, TOOL_TEXTUREBROWSER);
     Bind(wxEVT_MENU, &MainWindow::OnToolsSoundBrowser, this, TOOL_SOUNDBROWSER);
+    Bind(wxEVT_MENU, &MainWindow::OnToolsMeshBrowser, this, TOOL_MESHBROWSER);
 
     m_AuiMgr.Update();
 
@@ -543,7 +545,7 @@ void MainWindow::OnHelpAbout(wxCommandEvent& event)
     info.SetName(APP_NAME);
     info.SetVersion(APP_VERSION);
     info.SetDescription("Manifold Editor content creation tool");
-    info.SetCopyright("(c) 2023-2024");
+    info.SetCopyright("(c) 2023-2025");
     info.AddDeveloper("James Kinnaird");
 
     wxAboutBox(info, this);
@@ -573,6 +575,12 @@ void MainWindow::OnToolsSoundBrowser(wxCommandEvent& event)
 {
     OnToolsEntityBrowser(event);
     m_Browser->SwitchTo(BrowserWindow::PAGE_SOUNDS);
+}
+
+void MainWindow::OnToolsMeshBrowser(wxCommandEvent& event)
+{
+    OnToolsEntityBrowser(event);
+    m_Browser->SwitchTo(BrowserWindow::PAGE_MESHES);
 }
 
 void MainWindow::OnToolsPackageManager(wxCommandEvent& event)

@@ -41,6 +41,7 @@ var class_view_panel =
     [ "OnToolCube", "class_view_panel.html#a6115a67eb0409cb8b8a68f1e264aa1d2", null ],
     [ "OnToolCylinder", "class_view_panel.html#acf9987e6743a43e8a6bae89ef35ded17", null ],
     [ "OnToolLight", "class_view_panel.html#aeb21dbc4f9f737a77d209893afb6903f", null ],
+    [ "OnToolMesh", "class_view_panel.html#ae704fb21ce6e362bd66c3272e01f8ed8", null ],
     [ "OnToolPathNode", "class_view_panel.html#af16ad21c261da4b4a132c8df97971420", null ],
     [ "OnToolPlane", "class_view_panel.html#ac62c7a194978c6061d5ce044041ef893", null ],
     [ "OnToolPlayerStart", "class_view_panel.html#a81314bbd763a03abd24f9db185184773", null ],

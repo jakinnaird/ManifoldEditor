@@ -223,6 +223,12 @@ private:
 	void OnToolsSoundBrowser(wxCommandEvent& event);
 
 	/**
+	 * @brief Handle mesh browser action
+	 * @param event The command event
+	 */
+	void OnToolsMeshBrowser(wxCommandEvent& event);
+
+	/**
 	 * @brief Handle package manager action
 	 * @param event The command event
 	 */

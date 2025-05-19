@@ -30,6 +30,7 @@
 class TextureBrowser;
 class ActorBrowser;
 class SoundBrowser;
+class MeshBrowser;
 
 /**
  * @class BrowserWindow
@@ -41,6 +42,11 @@ class SoundBrowser;
  */
 class BrowserWindow : public wxDialog
 {
+	friend class TextureBrowser;
+	friend class ActorBrowser;
+	friend class SoundBrowser;
+	friend class MeshBrowser;
+
 public:
 	/**
 	 * @enum PageNumbers
@@ -51,13 +57,19 @@ public:
 		PAGE_ACTORS,    ///< Actor browser page
 		PAGE_TEXTURES,  ///< Texture browser page
 		PAGE_SOUNDS,    ///< Sound browser page
+		PAGE_MESHES,    ///< Mesh browser page
 	};
+
+protected:
+	typedef std::list<wxString> packagelist_t;
+	static packagelist_t ms_Packages;
 
 private:
 	wxNotebook* m_Notebook;     ///< Notebook for page management
 	ActorBrowser* m_Actors;     ///< Actor browser panel
 	TextureBrowser* m_Textures; ///< Texture browser panel
 	SoundBrowser* m_Sounds;     ///< Sound browser panel
+	MeshBrowser* m_Meshes;     ///< Mesh browser panel
 
 public:
 	/**
@@ -108,6 +120,18 @@ public:
 	 */
 	wxString GetActorDefinition(const wxString& name);
 
+	/**
+	 * @brief Get the selected mesh
+	 * @return The selected mesh name
+	 */
+	const wxString& GetMesh(void);
+
+	/**
+	 * @brief Add a package to the browser
+	 * @param path The path to the package
+	 */
+	static void AddPackage(const wxString& path);
+
 private:
 	/**
 	 * @brief Handle window close events
@@ -128,9 +152,6 @@ private:
 	};
 
 private:
-	typedef std::list<wxString> packagelist_t;
-	static packagelist_t ms_Packages;
-
 	typedef std::vector<TextureEntry> textures_t;
 	textures_t m_Textures;
 
@@ -152,8 +173,6 @@ public:
 	void SetRenderDevice(irr::IrrlichtDevice* renderDevice);
 
 	const wxString& GetSelection(void) { return m_Selected; }
-
-	static void AddPackage(const wxString& path);
 
 private:
 	bool LoadPackage(const wxString& path, bool preload = false);
@@ -188,6 +207,8 @@ public:
 	wxString GetDefinition(const wxString& name);
 
 private:
+	bool LoadPackage(const wxString& path, bool preload = false);
+
 	void OnToolAdd(wxCommandEvent& event);
 	void OnToolOpen(wxCommandEvent& event);
 	void OnToolSave(wxCommandEvent& event);
@@ -209,7 +230,8 @@ private:
 		COL_PATH = 0,
 		COL_TYPE,
 		COL_CHANNELS,
-		COL_FREQ
+		COL_FREQ,
+		COL_PACKAGE
 	};
 
 private:
@@ -227,6 +249,8 @@ public:
 	void SetAudioSystem(std::shared_ptr<AudioSystem>& audioSystem);
 
 private:
+	bool LoadPackage(const wxString& path, bool preload = false);
+
 	void OnToolAdd(wxCommandEvent& event);
 	void OnToolOpen(wxCommandEvent& event);
 	void OnToolPlay(wxCommandEvent& event);
@@ -234,3 +258,37 @@ private:
 
 	void OnItemActivate(wxListEvent& event);
 };
+
+class MeshBrowser : public wxPanel
+{
+private:
+private:
+	enum
+	{
+		COL_PATH = 0,
+		COL_TYPE,
+		COL_PACKAGE
+	};
+
+	wxListView* m_List;
+
+	typedef std::map<long, wxString> itempath_t;
+	itempath_t m_ItemPaths;
+
+	wxString m_Selected;
+
+public:
+	MeshBrowser(wxWindow* parent);
+	~MeshBrowser(void);
+
+	const wxString& GetSelection(void);
+
+private:
+	bool LoadPackage(const wxString& path, bool preload = false);
+
+	void OnToolAdd(wxCommandEvent& event);
+	void OnToolOpen(wxCommandEvent& event);
+
+	void OnItemSelected(wxListEvent& event);
+};
+
