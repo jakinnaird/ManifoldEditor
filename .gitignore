@@ -1,0 +1,29 @@
+# global
+.vs
+.vscode/
+
+*.exe
+*.dll
+*.exp
+*.lib
+*.pdb
+*.ilk
+*.o
+*.d
+*.so*
+
+bin/ManifoldEditor*
+
+*.mpk
+!editor.mpk
+
+# specific
+msw/obj
+thirdparty/freetype-2.13.3/objs/
+thirdparty/freetype-demos
+thirdparty/irrlicht-1.8.5/source/Irrlicht/obj
+thirdparty/wxWidgets-3.2.4/build/msw/vc_x64_mswuddll
+thirdparty/wxWidgets-3.2.4/lib/vc_x64_dll
+
+linux/.cmake/
+!linux/.cmake/CMakeLists.txt
