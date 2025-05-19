@@ -1,8 +1,9 @@
-/*
-* ManifoldEditor
-*
-* Copyright (c) 2023 James Kinnaird
-*/
+/**
+ * @file ScriptEditor.hpp
+ * @brief Script editor implementation for the Manifold Editor
+ * @author James Kinnaird
+ * @copyright Copyright (c) 2023 James Kinnaird
+ */
 
 #pragma once
 
@@ -25,6 +26,14 @@ struct LanguageInfo {
 	int folds;
 };
 
+/**
+ * @class ScriptEditor
+ * @brief Editor page class for script editing
+ * 
+ * The ScriptEditor class provides a text editor for editing scripts
+ * with syntax highlighting, code completion, and other script-specific
+ * features.
+ */
 class ScriptEditor : public EditorPage
 {
 private:
@@ -45,20 +54,56 @@ private:
 	int m_calltipNo;
 
 public:
+	/**
+	 * @brief Constructor for the ScriptEditor class
+	 * @param parent Pointer to the parent window
+	 * @param editMenu Pointer to the edit menu
+	 */
 	ScriptEditor(wxWindow* parent, wxMenu* editMenu, const wxFileName& fileName);
+	
+	/**
+	 * @brief Destructor
+	 */
 	virtual ~ScriptEditor(void);
 
+	/**
+	 * @brief Check if the script has unsaved changes
+	 * @return true if there are unsaved changes, false otherwise
+	 */
 	bool HasChanged(void) { return m_TextCtrl->IsModified(); }
+
+	/**
+	 * @brief Save the current script
+	 */
 	void Save(void)
 	{
 		m_TextCtrl->SaveFile(m_FileName.GetFullPath());
 		m_TextCtrl->SetSavePoint();
 	}
+
+	/**
+	 * @brief Undo the last action
+	 */
 	void OnUndo(void) { m_TextCtrl->Undo(); }
+
+	/**
+	 * @brief Redo the last undone action
+	 */
 	void OnRedo(void) { m_TextCtrl->Redo(); }
 
+	/**
+	 * @brief Cut the selected content
+	 */
 	void OnCut(void);
+
+	/**
+	 * @brief Copy the selected content
+	 */
 	void OnCopy(void);
+
+	/**
+	 * @brief Paste content from clipboard
+	 */
 	void OnPaste(void);
 
 private:

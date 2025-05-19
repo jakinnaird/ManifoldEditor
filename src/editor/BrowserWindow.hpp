@@ -1,8 +1,9 @@
-/*
-* ManifoldEditor
-*
-* Copyright (c) 2023 James Kinnaird
-*/
+/**
+ * @file BrowserWindow.hpp
+ * @brief Browser window implementation for the Manifold Editor
+ * @author James Kinnaird
+ * @copyright Copyright (c) 2023 James Kinnaird
+ */
 
 #pragma once
 
@@ -30,37 +31,88 @@ class TextureBrowser;
 class ActorBrowser;
 class SoundBrowser;
 
+/**
+ * @class BrowserWindow
+ * @brief Window class for browsing and selecting resources
+ * 
+ * The BrowserWindow class provides a dialog window for browsing and selecting
+ * various resources such as actors, textures, and sounds. It includes multiple
+ * tabs for different resource types and supports preview functionality.
+ */
 class BrowserWindow : public wxDialog
 {
 public:
+	/**
+	 * @enum PageNumbers
+	 * @brief Enumeration of browser page types
+	 */
 	enum PageNumbers : int
 	{
-		PAGE_ACTORS,
-		PAGE_TEXTURES,
-		PAGE_SOUNDS,
+		PAGE_ACTORS,    ///< Actor browser page
+		PAGE_TEXTURES,  ///< Texture browser page
+		PAGE_SOUNDS,    ///< Sound browser page
 	};
 
 private:
-	wxNotebook* m_Notebook;
-
-	ActorBrowser* m_Actors;
-	TextureBrowser* m_Textures;
-	SoundBrowser* m_Sounds;
+	wxNotebook* m_Notebook;     ///< Notebook for page management
+	ActorBrowser* m_Actors;     ///< Actor browser panel
+	TextureBrowser* m_Textures; ///< Texture browser panel
+	SoundBrowser* m_Sounds;     ///< Sound browser panel
 
 public:
+	/**
+	 * @brief Constructor for the BrowserWindow class
+	 * @param parent Pointer to the parent window
+	 */
 	BrowserWindow(wxWindow* parent);
+	
+	/**
+	 * @brief Destructor
+	 */
 	~BrowserWindow(void);
 
+	/**
+	 * @brief Set the render device
+	 * @param renderDevice Pointer to the Irrlicht render device
+	 */
 	void SetRenderDevice(irr::IrrlichtDevice* renderDevice);
+
+	/**
+	 * @brief Set the audio system
+	 * @param audioSystem Shared pointer to the audio system
+	 */
 	void SetAudioSystem(std::shared_ptr<AudioSystem>& audioSystem);
 
+	/**
+	 * @brief Switch to a specific page
+	 * @param pageNumber The page number to switch to
+	 */
 	void SwitchTo(int pageNumber);
 
+	/**
+	 * @brief Get the selected texture
+	 * @return The selected texture name
+	 */
 	const wxString& GetTexture(void);
+
+	/**
+	 * @brief Get the selected actor
+	 * @return The selected actor name
+	 */
 	const wxString& GetActor(void);
+
+	/**
+	 * @brief Get the definition of an actor
+	 * @param name The name of the actor
+	 * @return The actor definition
+	 */
 	wxString GetActorDefinition(const wxString& name);
 
 private:
+	/**
+	 * @brief Handle window close events
+	 * @param event The close event
+	 */
 	void OnCloseEvent(wxCloseEvent& event);
 };
 

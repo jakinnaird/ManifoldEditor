@@ -23,3 +23,7 @@ goto End
 goto End
 
 :End
+
+@echo off
+cd ..
+thirdparty\doxygen\doxygen.exe Doxyfile

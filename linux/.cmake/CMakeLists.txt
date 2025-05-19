@@ -10,6 +10,20 @@ find_package(Freetype REQUIRED MODULE)
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GTK3 REQUIRED gtk+-3.0)
 
+# Doxygen 1.13.2
+find_package(Doxygen REQUIRED)
+
+# Add a custom target for generating documentation
+add_custom_target(doc ALL
+    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Generating documentation with Doxygen"
+    VERBATIM
+)
+
+# Ensure documentation is built by default
+add_dependencies(doc ManifoldEditor)
+
 add_executable(ManifoldEditor
     ../../src/editor/AudioSystem.cpp
     ../../src/editor/BrowserWindow.cpp

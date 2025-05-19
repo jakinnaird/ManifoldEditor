@@ -25,7 +25,5 @@ thirdparty/irrlicht-1.8.5/source/Irrlicht/obj
 thirdparty/wxWidgets-3.2.4/build/msw/vc_x64_mswuddll
 thirdparty/wxWidgets-3.2.4/lib/vc_x64_dll
 
-linux/.cmake/CMakeFiles
-linux/.cmake/cmake_install.cmake
-linux/.cmake/CMakeCache.txt
-linux/.cmake/Makefile
+linux/.cmake/
+!linux/.cmake/CMakeLists.txt

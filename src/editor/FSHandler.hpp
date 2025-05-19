@@ -24,8 +24,8 @@ public:
 
 	void MountFolder(const wxString& path);
 
-	bool CanOpen(const wxString& location) wxOVERRIDE;
-	wxFSFile* OpenFile(wxFileSystem& fs, const wxString& location) wxOVERRIDE;
+	bool CanOpen(const wxString& location);
+	wxFSFile* OpenFile(wxFileSystem& fs, const wxString& location);
 };
 
 wxImage ImageFromFS(wxFileSystem& fileSystem, const wxString& location, wxBitmapType type = wxBITMAP_TYPE_ANY);

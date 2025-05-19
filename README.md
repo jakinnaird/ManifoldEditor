@@ -11,7 +11,7 @@ Open Visual Studio msw/ManifoldEditor.sln, select Debug or Release and build. On
 Install the required development packages
 
 ```
-sudo apt install libwxgtk3.2-dev libfreetype-dev libgtk-3-dev libxxf86vm-dev
+sudo apt install libgl-dev libxxf86vm-dev libwxgtk3.0-gtk3-dev libgtk-3-dev libfreetype-dev pkg-config doxygen
 ```
 
 Create the needed libraries and compile the editor
