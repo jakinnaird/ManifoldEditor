@@ -14,8 +14,10 @@
 
 bin/ManifoldEditor*
 
+*.zip
 *.mpk
 !editor.mpk
+*.irr
 
 # specific
 msw/obj

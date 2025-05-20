@@ -25,5 +25,5 @@ goto End
 :End
 
 @echo off
-cd ..
-thirdparty\doxygen\doxygen.exe Doxyfile
+REM cd ..
+REM thirdparty\doxygen\doxygen.exe Doxyfile

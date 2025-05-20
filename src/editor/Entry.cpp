@@ -82,7 +82,10 @@ public:
 
 			wxFileSystem::AddHandler(new wxArchiveFSHandler);
 			wxFileSystem::AddHandler(new wxFilterFSHandler);
-			wxFileSystem::AddHandler(new MpkFSHandler);
+			FolderFSHandler* folderHandler = new FolderFSHandler;
+			wxFileSystem::AddHandler(folderHandler);
+			MpkFSHandler* mpkHandler = new MpkFSHandler;
+			wxFileSystem::AddHandler(mpkHandler);
 
 			ISerializerFactory::AddSerializer(wxT("irr"),
 				std::shared_ptr<ISerializerFactory>(new SerializerFactory<IrrSave, IrrLoad>(
@@ -146,6 +149,10 @@ public:
 					wxDir dir(path);
 					if (dir.IsOpened())
 					{
+						// register the folder
+						folderHandler->MountFolder(path);
+						mpkHandler->AddSearchPath(path);
+
 						wxString filename;
 						bool cont = dir.GetFirst(&filename, wxEmptyString, wxDIR_FILES);
 						while (cont)

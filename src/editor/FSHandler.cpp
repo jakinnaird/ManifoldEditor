@@ -6,6 +6,9 @@
 
 #include "FSHandler.hpp"
 
+#include <wx/filename.h>
+#include <wx/log.h>
+
 FolderFSHandler::FolderFSHandler(void)
 {
 }
@@ -71,7 +74,19 @@ wxBitmap BitmapFromFS(wxFileSystem& fileSystem, const wxString& location, wxBitm
 irr::io::IReadFile* IrrFSHandler::createAndOpenFile(const irr::io::path& filename)
 {
 	wxFileSystem fileSystem;
-	wxFSFile* f = fileSystem.OpenFile(filename.c_str());
+	
+	wxString filePath(filename.c_str());
+
+	// check if the location is a zip file
+	// e.g. demo.zip:models/sydney.md2 -> demo.zip#zip:models/sydney.md2
+	if (filePath.Contains(wxT(".zip:")))
+	{
+		wxString zipFile = filePath.BeforeLast(wxT(':'));
+		wxString fileName = filePath.AfterLast(wxT(':'));
+		filePath = zipFile + wxT("#zip:") + fileName;
+	}
+
+	wxFSFile* f = fileSystem.OpenFile(filePath);
 	if (f)
 	{
 		IrrReadFile* ret = new IrrReadFile(filename, f->DetachStream());

@@ -27,6 +27,7 @@ protected:
 	irr::core::vector3df m_Position;
 	wxString m_Name;
 	wxString m_Actor;
+	wxString m_Mesh;
 	
 public:
 	AddNodeCommand(TOOLID toolId,

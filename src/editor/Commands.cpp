@@ -28,6 +28,12 @@ AddNodeCommand::AddNodeCommand(TOOLID toolId,
 		m_Actor = name;
 		m_Name = m_Map->NextName(name);
 	}
+	else if (m_ToolId == TOOL_MESH)
+	{
+		m_Mesh = name;
+		wxFileName meshName(name.AfterLast(wxT(':')));
+		m_Name = m_Map->NextName(meshName.GetName());
+	}
 }
 
 AddNodeCommand::AddNodeCommand(const wxString& nodeType,
@@ -67,6 +73,8 @@ AddNodeCommand::AddNodeCommand(const wxString& nodeType,
 	}
 	else if (nodeType.CmpNoCase("animatedMesh") == 0)
 		m_ToolId = (TOOLID)irr::scene::ESNT_ANIMATED_MESH;
+	else if (nodeType.CmpNoCase("mesh") == 0)
+		m_ToolId = (TOOLID)irr::scene::ESNT_MESH;
 	else
 		m_ToolId = (TOOLID)0; // unknown
 }
@@ -320,6 +328,23 @@ bool AddNodeCommand::Do(void)
 		sceneNode->setName(m_Name.c_str());
 		isActor = true;
 	} break;
+	case TOOL_MESH:
+	{
+		node = m_SceneMgr->addMeshSceneNode(
+			m_SceneMgr->getMesh(m_Mesh.c_str().AsChar()), m_MapRoot, NID_PICKABLE,
+			m_Position, irr::core::vector3df(0, 0, 0), irr::core::vector3df(1, 1, 1),
+			true);
+
+		isGeometry = true;
+	} break;
+	case irr::scene::ESNT_MESH:
+	{
+		node = m_SceneMgr->addMeshSceneNode(nullptr, m_MapRoot, NID_PICKABLE,
+			m_Position, irr::core::vector3df(0, 0, 0), irr::core::vector3df(1, 1, 1),
+			true);
+
+		isGeometry = true;
+	} break;
 	default:
 		return false;
 	}
@@ -336,8 +361,11 @@ bool AddNodeCommand::Do(void)
 		{
 			irr::scene::ITriangleSelector* selector = m_SceneMgr->createTriangleSelector(
 				node->getMesh(), node);
-			node->setTriangleSelector(selector);
-			selector->drop();
+			if (selector)
+			{
+				node->setTriangleSelector(selector);
+				selector->drop();
+			}
 		}
 	}
 

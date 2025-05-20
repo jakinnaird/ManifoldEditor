@@ -1365,8 +1365,9 @@ void MeshBrowser::OnToolOpen(wxCommandEvent& event)
 
 void MeshBrowser::OnItemSelected(wxListEvent& event)
 {
-	wxFileName selection(m_List->GetItemText(event.GetIndex()));
-	m_Selected = selection.GetName();
+	// wxFileName selection(m_List->GetItemText(event.GetIndex()));
+	// m_Selected = selection.GetName();
+	m_Selected = m_ItemPaths[event.GetIndex()];
 }
 
 const wxString& MeshBrowser::GetSelection(void)

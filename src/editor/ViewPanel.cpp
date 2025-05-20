@@ -114,6 +114,7 @@ ViewPanel::ViewPanel(wxWindow* parent, wxCommandProcessor& cmdProc,
 	Bind(wxEVT_MENU, &ViewPanel::OnToolLight, this, TOOL_LIGHT);
 	Bind(wxEVT_MENU, &ViewPanel::OnToolPathNode, this, TOOL_PATHNODE);
 	Bind(wxEVT_MENU, &ViewPanel::OnToolActor, this, TOOL_ACTOR);
+	Bind(wxEVT_MENU, &ViewPanel::OnToolMesh, this, TOOL_MESH);
 	Bind(wxEVT_MENU, &ViewPanel::OnMenuFreeLook, this, MENU_FREELOOK);
 	Bind(wxEVT_MENU, &ViewPanel::OnMenuSetTexture, this, MENU_SETTEXTURE);
 }
@@ -827,7 +828,10 @@ void ViewPanel::OnMouse(wxMouseEvent& event)
 
 			const wxString& mesh = m_Browser->GetMesh();
 			if (!mesh.empty())
-				popupMenu.Append(TOOL_MESH, wxString::Format(_("Add mesh: %s"), mesh));
+			{
+				wxFileName meshName(mesh);
+				popupMenu.Append(TOOL_MESH, wxString::Format(_("Add mesh: %s"), meshName.GetName()));
+			}
 
 			if (m_ActiveView == VIEW_3D)
 			{
@@ -1080,7 +1084,26 @@ void ViewPanel::OnToolActor(wxCommandEvent& event)
 
 void ViewPanel::OnToolMesh(wxCommandEvent& event)
 {
-	wxLogMessage(_("Not implemented"));
+	// get the 3D camera and create the item directly in front of it
+	irr::core::vector3df pos = m_View[VIEW_3D]->getAbsolutePosition();
+	irr::core::vector3df target = m_View[VIEW_3D]->getTarget();
+	irr::core::line3df ray(pos, target);
+
+	irr::core::vector3df location = ray.getMiddle();
+	wxString meshName(m_Browser->GetMesh());
+
+	// build the package path
+	wxFileName packageName(meshName.BeforeLast(wxT(':')));
+	// remove #zip if present
+	if (packageName.GetExt().Contains(wxT("#zip")))
+		packageName.SetExt(wxT("zip"));
+
+	wxString meshFile = meshName.AfterLast(wxT(':'));
+	wxString meshPath = packageName.GetFullName() + wxT(":") + meshFile;
+
+	m_Commands.Submit(new AddNodeCommand(TOOL_MESH, 
+		m_ExplorerPanel, m_RenderDevice->getSceneManager(), m_MapRoot,
+		m_Map, location, m_Browser->GetMesh()));
 }
 
 void ViewPanel::OnEditCut(wxCommandEvent& event)
