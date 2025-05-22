@@ -127,6 +127,12 @@ public:
 	const wxString& GetMesh(void);
 
 	/**
+	 * @brief Get the definition of a mesh
+	 * @return The mesh definition
+	 */
+	const wxString& GetMeshDefinition(void);
+
+	/**
 	 * @brief Add a package to the browser
 	 * @param path The path to the package
 	 */
@@ -262,26 +268,26 @@ private:
 class MeshBrowser : public wxPanel
 {
 private:
-private:
 	enum
 	{
-		COL_PATH = 0,
-		COL_TYPE,
+		COL_NAME = 0,
 		COL_PACKAGE
 	};
 
 	wxListView* m_List;
 
-	typedef std::map<long, wxString> itempath_t;
-	itempath_t m_ItemPaths;
+	typedef std::map<long, wxString> itemdefinition_t;
+	itemdefinition_t m_ItemDefinitions;
 
-	wxString m_Selected;
+	wxString m_Selection;
+	wxString m_Definition;
 
 public:
 	MeshBrowser(wxWindow* parent);
 	~MeshBrowser(void);
 
 	const wxString& GetSelection(void);
+	const wxString& GetDefinition(void);
 
 private:
 	bool LoadPackage(const wxString& path, bool preload = false);

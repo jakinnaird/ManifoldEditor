@@ -107,6 +107,11 @@ const wxString& BrowserWindow::GetMesh(void)
 	return m_Meshes->GetSelection();
 }
 
+const wxString& BrowserWindow::GetMeshDefinition(void)
+{
+	return m_Meshes->GetDefinition();
+}
+
 void BrowserWindow::AddPackage(const wxString& path)
 {
 	for (packagelist_t::iterator i = ms_Packages.begin();
@@ -1181,6 +1186,44 @@ bool SoundBrowser::LoadPackage(const wxString& path, bool preload)
 
 void SoundBrowser::OnToolAdd(wxCommandEvent& event)
 {
+	wxFileDialog openDialog(this,
+		_("Add sound"), wxEmptyString, wxEmptyString,
+		_("Sound (*.wav)|*.wav|Sound (*.mp3)|*.mp3|Sound (*.flac)|*.flac"),
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openDialog.ShowModal() == wxID_CANCEL)
+		return;
+
+	wxFileName soundPath(openDialog.GetPath());
+	// get the meta data for the item
+	uint32_t sampleRate, channels;
+	m_AudioSystem->getSoundMetadata(soundPath.GetFullPath(), sampleRate, channels);
+	if (sampleRate == 0 || channels == 0)
+	{
+		wxLogWarning(_("Failed to get sound metadata for: %s"), soundPath.GetFullPath());
+		return;
+	}
+
+	long index = m_List->InsertItem(m_List->GetItemCount(), soundPath.GetName());
+	m_List->SetItemData(index, -1);
+	m_ItemPaths[index] = soundPath.GetFullPath();
+
+	wxFileType* mimeType = wxTheMimeTypesManager->GetFileTypeFromExtension(soundPath.GetExt());
+	if (mimeType)
+	{
+		wxString type;
+		if (mimeType->GetMimeType(&type))
+			m_List->SetItem(index, COL_TYPE, type);
+		else
+			m_List->SetItem(index, COL_TYPE, _("Unknown"));
+
+		delete mimeType;
+	}
+	else
+		m_List->SetItem(index, COL_TYPE, _("Unknown"));
+
+	m_List->SetItem(index, COL_CHANNELS, wxString::Format(_("%d"), channels));
+	m_List->SetItem(index, COL_FREQ, wxString::Format(_("%d"), sampleRate));
+	m_List->SetItem(index, COL_PACKAGE, soundPath.GetFullPath());
 }
 
 void SoundBrowser::OnToolOpen(wxCommandEvent& event)
@@ -1241,8 +1284,7 @@ MeshBrowser::MeshBrowser(wxWindow* parent)
 
 	m_List = new wxListView(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
 		wxLC_REPORT | wxLC_VRULES);
-	m_List->AppendColumn(_("Path"));
-	m_List->AppendColumn(_("Type"));
+	m_List->AppendColumn(_("Name"));
 	m_List->AppendColumn(_("Package"));
 
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
@@ -1294,42 +1336,23 @@ bool MeshBrowser::LoadPackage(const wxString& path, bool preload)
 			wxString entryPath(entry->GetName());
 
 			// support archives made on any platform
-			if (entryPath.StartsWith(wxT("mesh/")) ||
-				entryPath.StartsWith(wxT("mesh\\")) ||
-				entryPath.StartsWith(wxT("models/")) ||
-				entryPath.StartsWith(wxT("models\\")))
+			if (entryPath.EndsWith(wxT(".prefab")))
 			{
 				// build the full path
-				wxString meshPath(_path.GetFullPath());
-				if (_path.GetExt().CmpNoCase(wxT("zip")) == 0)
-					meshPath.append(wxT("#zip"));
-				// else if (_path.GetExt().CmpNoCase(wxT("mpk")) == 0)
-				// 	meshPath.append(wxT("#mpk"));
+				wxFileName prefabName(entryPath);
 
-				meshPath.append(wxT(":"));
-				meshPath.append(entryPath);
-
-				// add this to the list
-				long index = m_List->InsertItem(m_List->GetItemCount(), entry->GetName());
-				m_List->SetItemData(index, -1);
-				m_ItemPaths[index] = meshPath;
-
-				wxFileName fn(entry->GetName());
-				wxFileType* mimeType = wxTheMimeTypesManager->GetFileTypeFromExtension(fn.GetExt());
-				if (mimeType)
+				// read the prefab file
+				wxStringOutputStream prefabStream;
+				zipStream.Read(prefabStream);
+				if (prefabStream.IsOk())
 				{
-					wxString type;
-					if (mimeType->GetMimeType(&type))
-						m_List->SetItem(index, COL_TYPE, type);
-					else
-						m_List->SetItem(index, COL_TYPE, _("Unknown"));
+					// add this to the list
+					long index = m_List->InsertItem(m_List->GetItemCount(), prefabName.GetName());
+					// m_List->SetItemData(index, -1);
 
-					delete mimeType;
+					m_ItemDefinitions[index] = prefabStream.GetString();
+					m_List->SetItem(index, COL_PACKAGE, _path.GetFullPath());
 				}
-				else
-					m_List->SetItem(index, COL_TYPE, _("Unknown"));
-
-				m_List->SetItem(index, COL_PACKAGE, _path.GetFullPath());
 			}
 
 			entry->UnRef();
@@ -1342,6 +1365,35 @@ bool MeshBrowser::LoadPackage(const wxString& path, bool preload)
 
 void MeshBrowser::OnToolAdd(wxCommandEvent& event)
 {
+	wxFileDialog openDialog(this,
+		_("Add prefab"), wxEmptyString, wxEmptyString,
+		_("Prefab (*.prefab)|*.prefab"),
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openDialog.ShowModal() == wxID_CANCEL)
+		return;
+
+	wxFileName prefabPath(openDialog.GetPath());
+	wxString prefabName = prefabPath.GetName();
+
+	// confirm the file is at least an XML file
+	wxXmlDocument doc(prefabPath.GetFullPath());
+	if (!doc.IsOk())
+	{
+		wxLogWarning(_("Invalid prefab file: %s"), prefabPath.GetFullPath());
+		return;
+	}
+	
+	// read the prefab file
+	wxFileInputStream prefabStream(prefabPath.GetFullPath());
+	wxStringOutputStream prefabData;
+	prefabStream.Read(prefabData);
+	if (prefabData.IsOk())
+	{
+		// add this to the list
+		long index = m_List->InsertItem(m_List->GetItemCount(), prefabName);
+		m_ItemDefinitions[index] = prefabData.GetString();
+		m_List->SetItem(index, COL_PACKAGE, prefabPath.GetFullPath());
+	}
 }
 
 void MeshBrowser::OnToolOpen(wxCommandEvent& event)
@@ -1365,12 +1417,16 @@ void MeshBrowser::OnToolOpen(wxCommandEvent& event)
 
 void MeshBrowser::OnItemSelected(wxListEvent& event)
 {
-	// wxFileName selection(m_List->GetItemText(event.GetIndex()));
-	// m_Selected = selection.GetName();
-	m_Selected = m_ItemPaths[event.GetIndex()];
+	m_Selection = m_List->GetItemText(event.GetIndex());
+	m_Definition = m_ItemDefinitions[event.GetIndex()];
 }
 
 const wxString& MeshBrowser::GetSelection(void)
 {
-	return m_Selected;
+	return m_Selection;
+}
+
+const wxString& MeshBrowser::GetDefinition(void)
+{
+	return m_Definition;
 }

@@ -30,9 +30,15 @@ AddNodeCommand::AddNodeCommand(TOOLID toolId,
 	}
 	else if (m_ToolId == TOOL_MESH)
 	{
-		m_Mesh = name;
-		wxFileName meshName(name.AfterLast(wxT(':')));
-		m_Name = m_Map->NextName(meshName.GetName());
+		m_Mesh = name; // store the XML definition
+		wxStringInputStream stream(m_Mesh);
+		wxXmlDocument doc(stream);
+		wxXmlNode* root = doc.GetRoot();
+		if (root)
+		{
+			wxString meshName = root->GetAttribute("name");
+			m_Name = m_Map->NextName(meshName);
+		}
 	}
 }
 
@@ -330,10 +336,69 @@ bool AddNodeCommand::Do(void)
 	} break;
 	case TOOL_MESH:
 	{
-		node = m_SceneMgr->addMeshSceneNode(
-			m_SceneMgr->getMesh(m_Mesh.c_str().AsChar()), m_MapRoot, NID_PICKABLE,
-			m_Position, irr::core::vector3df(0, 0, 0), irr::core::vector3df(1, 1, 1),
-			true);
+		wxString model;
+		wxString textures[4];
+
+		wxStringInputStream stream(m_Mesh);
+		wxXmlDocument doc(stream);
+		wxXmlNode* root = doc.GetRoot();
+		if (root)
+		{
+			wxXmlNode* entry = root->GetChildren();
+			while (entry)
+			{
+				wxString entryName = entry->GetName();
+				if (entryName.CmpNoCase(wxT("mesh")) == 0)
+					model = entry->GetNodeContent();
+				else if (entryName.CmpNoCase(wxT("texture0")) == 0)
+					textures[0] = entry->GetNodeContent();
+				else if (entryName.CmpNoCase(wxT("texture1")) == 0)
+					textures[1] = entry->GetNodeContent();
+				else if (entryName.CmpNoCase(wxT("texture2")) == 0)
+					textures[2] = entry->GetNodeContent();
+				else if (entryName.CmpNoCase(wxT("texture3")) == 0)
+					textures[3] = entry->GetNodeContent();
+
+				entry = entry->GetNext();
+			}
+		}
+
+		if (!model.IsEmpty())
+		{
+			irr::scene::IMeshSceneNode* node = m_SceneMgr->addMeshSceneNode(
+				m_SceneMgr->getMesh(model.c_str().AsChar()), m_MapRoot, NID_PICKABLE,
+				m_Position, irr::core::vector3df(0, 0, 0), irr::core::vector3df(1, 1, 1),
+				true);
+
+			node->setName(m_Name.c_str());
+			node->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+
+			if (!textures[0].IsEmpty())
+				node->setMaterialTexture(0, m_SceneMgr->getVideoDriver()->getTexture(
+					textures[0].c_str().AsChar()));
+			if (!textures[1].IsEmpty())
+				node->setMaterialTexture(1, m_SceneMgr->getVideoDriver()->getTexture(
+					textures[1].c_str().AsChar()));
+			if (!textures[2].IsEmpty())
+				node->setMaterialTexture(2, m_SceneMgr->getVideoDriver()->getTexture(
+					textures[2].c_str().AsChar()));
+			if (!textures[3].IsEmpty())
+				node->setMaterialTexture(3, m_SceneMgr->getVideoDriver()->getTexture(
+					textures[3].c_str().AsChar()));
+
+			if (!node->getTriangleSelector())
+			{
+				irr::scene::ITriangleSelector* selector = m_SceneMgr->createTriangleSelector(
+					node->getMesh(), node);
+				if (selector)
+				{
+					node->setTriangleSelector(selector);
+					selector->drop();
+				}
+			}
+		}
+		else
+			return false;
 
 		isGeometry = true;
 	} break;

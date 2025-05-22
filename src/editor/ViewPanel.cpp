@@ -1090,20 +1090,20 @@ void ViewPanel::OnToolMesh(wxCommandEvent& event)
 	irr::core::line3df ray(pos, target);
 
 	irr::core::vector3df location = ray.getMiddle();
-	wxString meshName(m_Browser->GetMesh());
+	// wxString meshName(m_Browser->GetMesh());
 
-	// build the package path
-	wxFileName packageName(meshName.BeforeLast(wxT(':')));
-	// remove #zip if present
-	if (packageName.GetExt().Contains(wxT("#zip")))
-		packageName.SetExt(wxT("zip"));
+	// // build the package path
+	// wxFileName packageName(meshName.BeforeLast(wxT(':')));
+	// // remove #zip if present
+	// if (packageName.GetExt().Contains(wxT("#zip")))
+	// 	packageName.SetExt(wxT("zip"));
 
-	wxString meshFile = meshName.AfterLast(wxT(':'));
-	wxString meshPath = packageName.GetFullName() + wxT(":") + meshFile;
+	// wxString meshFile = meshName.AfterLast(wxT(':'));
+	// wxString meshPath = packageName.GetFullName() + wxT(":") + meshFile;
 
 	m_Commands.Submit(new AddNodeCommand(TOOL_MESH, 
 		m_ExplorerPanel, m_RenderDevice->getSceneManager(), m_MapRoot,
-		m_Map, location, m_Browser->GetMesh()));
+		m_Map, location, m_Browser->GetMeshDefinition()));
 }
 
 void ViewPanel::OnEditCut(wxCommandEvent& event)
