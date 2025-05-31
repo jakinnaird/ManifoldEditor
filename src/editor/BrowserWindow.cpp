@@ -448,17 +448,17 @@ public:
 		switch (Type)
 		{
 		case STRING:
-			return wxT("String");
+			return wxT("string");
 		case FLOAT:
-			return wxT("Float");
+			return wxT("float");
 		case INTEGER:
-			return wxT("Integer");
+			return wxT("int");
 		case VECTOR2:
-			return wxT("Vector2");
+			return wxT("vec2");
 		case VECTOR3:
-			return wxT("Vector3");
+			return wxT("vec3");
 		case VECTOR4:
-			return wxT("Vector4");
+			return wxT("vec4");
 		}
 
 		return wxEmptyString;
@@ -469,9 +469,12 @@ class ActorItemData : public wxTreeItemData
 {
 public:
 	wxString Definition;
+	wxString SourceFile;
+	bool FromPackage;
 
 public:
-	ActorItemData(wxXmlNode* actor)
+	ActorItemData(wxXmlNode* actor, const wxString& sourceFile, bool fromPackage)
+		: SourceFile(sourceFile), FromPackage(fromPackage)
 	{
 		wxXmlDocument doc;
 		doc.SetRoot(new wxXmlNode(*actor));
@@ -498,7 +501,7 @@ private:
 public:
 	EditActorDialog(wxWindow* parent, wxArrayString actorCategories,
 		ActorItemData* data = nullptr)
-		: wxDialog(parent, wxID_ANY, _("Add actor")),
+		: wxDialog(parent, wxID_ANY, _("Edit actor")),
 			m_ActorCategories(actorCategories),
 			m_NextId(0)
 	{
@@ -507,9 +510,9 @@ public:
 
 		wxToolBar* toolBar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
 			wxTB_FLAT | wxTB_HORIZONTAL);
-		toolBar->AddTool(wxID_ADD, _("Add"), wxArtProvider::GetBitmap(wxART_PLUS),
+		wxToolBarToolBase* addTool = toolBar->AddTool(wxID_ADD, _("Add"), wxArtProvider::GetBitmap(wxART_PLUS),
 			_("Add custom property"));
-		toolBar->AddTool(wxID_REMOVE, _("Delete"), wxArtProvider::GetBitmap(wxART_MINUS),
+		wxToolBarToolBase* removeTool = toolBar->AddTool(wxID_REMOVE, _("Delete"), wxArtProvider::GetBitmap(wxART_MINUS),
 			_("Delete custom property"));
 		toolBar->Realize();
 		sizer->Add(toolBar, wxSizerFlags().Expand());
@@ -522,7 +525,7 @@ public:
 		m_Properties->MakeColumnEditable(0);
 
 		m_GeneralProperties = new wxPropertyCategory(_("General"));
-		m_CustomProperties = new wxPropertyCategory(_("Custom"));
+		m_CustomProperties = new wxPropertyCategory(_("Properties"));
 		m_Properties->Append(m_GeneralProperties);
 		m_Properties->Append(m_CustomProperties);
 
@@ -548,29 +551,49 @@ public:
 			wxXmlDocument doc(stream);
 			wxXmlNode* root = doc.GetRoot();
 
-			name->SetValueFromString(root->GetAttribute(wxT("Name"),
+			name->SetValueFromString(root->GetAttribute(wxT("name"),
 				root->GetAttribute(wxT("name"))));
 			name->ChangeFlag(wxPG_PROP_READONLY, true);
-			category->SetValueFromString(root->GetAttribute(wxT("Category"),
+			category->SetValueFromString(root->GetAttribute(wxT("category"),
 				root->GetAttribute(wxT("category"))));
 			category->ChangeFlag(wxPG_PROP_READONLY, true);
-			type->SetValueFromString(root->GetAttribute(wxT("Type"),
+			type->SetValueFromString(root->GetAttribute(wxT("type"),
 				root->GetAttribute(wxT("type"))));
 			type->ChangeFlag(wxPG_PROP_READONLY, true);
 
 			wxXmlNode* child = root->GetChildren();
 			while (child)
 			{
-				wxXmlAttribute* attribute = child->GetAttributes();
+				if (child->GetName().CompareTo(wxT("properties"), wxString::ignoreCase) == 0)
+				{
+					wxXmlNode* property = child->GetChildren();
+					while (property)
+					{
+						wxXmlAttribute* attribute = property->GetAttributes();
 
-				// there should only be 1 attribute per node, so work with that
-				AddCustomAttribute(child->GetName(), attribute->GetName(),
-					attribute->GetValue());
+						// there should only be 1 attribute per node, so work with that
+						AddCustomAttribute(property->GetName(), attribute->GetName(),
+							attribute->GetValue(), data->FromPackage);
+
+						property = property->GetNext();
+					}
+				}
+				else if (child->GetName().CompareTo(wxT("components"), wxString::ignoreCase) == 0)
+				{
+					// TODO: add components
+				}
 
 				child = child->GetNext();
 			}
 
 			m_Properties->Expand(m_CustomProperties);
+
+			if (data->FromPackage)
+			{
+				addTool->Enable(false);
+				removeTool->Enable(false);
+				toolBar->Realize();
+			}
 		}
 
 		wxSizer* buttons = CreateButtonSizer(wxOK | wxCANCEL);
@@ -593,10 +616,10 @@ public:
 	wxXmlDocument GetDefinition(void)
 	{
 		wxXmlDocument doc;
-		wxXmlNode* actor = new wxXmlNode(nullptr, wxXML_ELEMENT_NODE, wxT("Actor"));
+		wxXmlNode* actor = new wxXmlNode(nullptr, wxXML_ELEMENT_NODE, wxT("actor"));
 		doc.SetRoot(actor);
 
-		wxXmlNode* custom = nullptr;
+		wxXmlNode* customProperties = new wxXmlNode(actor, wxXML_ELEMENT_NODE, wxT("properties"));
 
 		wxPropertyGridIterator iter = m_Properties->GetIterator();
 		while (!iter.AtEnd())
@@ -604,13 +627,13 @@ public:
 			wxPGProperty* prop = iter.GetProperty();
 			if (prop->GetParent() == m_GeneralProperties)
 			{
-				actor->AddAttribute(prop->GetLabel(), prop->GetValueAsString());
+				actor->AddAttribute(prop->GetLabel().Lower(), prop->GetValueAsString());
 			}
 			else if (prop->GetParent() == m_CustomProperties)
 			{
 				PropertyType* type = dynamic_cast<PropertyType*>(prop->GetClientObject());
-				wxXmlNode* custom = new wxXmlNode(actor, wxXML_ELEMENT_NODE, 
-					type->GetTypeAsString());
+				wxXmlNode* custom = new wxXmlNode(customProperties, wxXML_ELEMENT_NODE, 
+					type->GetTypeAsString().Lower());
 				custom->AddAttribute(prop->GetLabel(), prop->GetValueAsString());
 			}
 
@@ -660,8 +683,8 @@ public:
 				RemoveCustomAttribute(_("Emitter"));
 
 				// add mesh and texture custom properties
-				AddCustomAttribute(_("String"), _("Mesh"));
-				AddCustomAttribute(_("String"), _("Texture"));
+				AddCustomAttribute(_("string"), _("Mesh"));
+				AddCustomAttribute(_("string"), _("Texture"));
 			}
 			else if (prop->GetValueAsString().CompareTo(_("Emitter"), wxString::ignoreCase) == 0)
 			{
@@ -670,7 +693,7 @@ public:
 				RemoveCustomAttribute(_("Texture"));
 
 				// add emitter custom properties
-				AddCustomAttribute(_("String"), _("Emitter"));
+				AddCustomAttribute(_("string"), _("Emitter"));
 			}
 			else if (prop->GetValueAsString().CompareTo(_("Custom"), wxString::ignoreCase) == 0)
 			{
@@ -687,12 +710,12 @@ public:
 	void OnToolAdd(wxCommandEvent& event)
 	{
 		wxArrayString propertyChoices;
-		propertyChoices.Add(_("String"));
-		propertyChoices.Add(_("Float"));
-		propertyChoices.Add(_("Integer"));
-		propertyChoices.Add(_("Vector2"));
-		propertyChoices.Add(_("Vector3"));
-		propertyChoices.Add(_("Vector4"));
+		propertyChoices.Add(_("string"));
+		propertyChoices.Add(_("float"));
+		propertyChoices.Add(_("int"));
+		propertyChoices.Add(_("vec2"));
+		propertyChoices.Add(_("vec3"));
+		propertyChoices.Add(_("vec4"));
 
 		wxSingleChoiceDialog dialog(this, _("Select property type"),
 			_("Add custom property"), propertyChoices, nullptr, wxOK | wxCANCEL | wxCENTRE);
@@ -701,7 +724,7 @@ public:
 			wxString propName;
 			do
 			{
-				propName = wxString::Format(_("Custom%d"), ++m_NextId);
+				propName = wxString::Format(_("custom%d"), ++m_NextId);
 				wxPGProperty* prop = m_Properties->GetPropertyByName(propName);
 				if (prop == nullptr)
 					break;
@@ -710,8 +733,6 @@ public:
 
 			wxString selection = dialog.GetStringSelection();
 			AddCustomAttribute(selection, propName);
-
-			// m_Properties->Expand(m_CustomProperties);
 		}
 	}
 
@@ -726,30 +747,36 @@ public:
 	}
 
 	void AddCustomAttribute(const wxString& type, const wxString& name,
-		const wxString& value = wxEmptyString)
+		const wxString& value = wxEmptyString, bool fromPackage = false)
 	{
-		if (type.CompareTo(_("String"), wxString::ignoreCase) == 0)
+		if (type.CompareTo(_("string"), wxString::ignoreCase) == 0)
 		{
 			wxPGProperty* prop = new wxStringProperty(name);
 			prop->SetValueFromString(value);
 			prop->SetClientObject(new PropertyType(PropertyType::STRING));
 			m_Properties->AppendIn(m_CustomProperties, prop);
+			if (fromPackage)
+				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
-		else if (type.CompareTo(_("Float"), wxString::ignoreCase) == 0)
+		else if (type.CompareTo(_("float"), wxString::ignoreCase) == 0)
 		{
 			wxPGProperty* prop = new wxFloatProperty(name);
 			prop->SetValueFromString(value);
 			prop->SetClientObject(new PropertyType(PropertyType::FLOAT));
 			m_Properties->AppendIn(m_CustomProperties, prop);
+			if (fromPackage)
+				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
-		else if (type.CompareTo(_("Integer"), wxString::ignoreCase) == 0)
+		else if (type.CompareTo(_("int"), wxString::ignoreCase) == 0)
 		{
 			wxPGProperty* prop = new wxIntProperty(name);
 			prop->SetValueFromString(value);
 			prop->SetClientObject(new PropertyType(PropertyType::INTEGER));
 			m_Properties->AppendIn(m_CustomProperties, prop);
+			if (fromPackage)
+				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
-		else if (type.CompareTo(_("Vector2"), wxString::ignoreCase) == 0)
+		else if (type.CompareTo(_("vec2"), wxString::ignoreCase) == 0)
 		{
 			wxPGProperty* prop = m_Properties->AppendIn(m_CustomProperties,
 				new wxStringProperty(name, wxPG_LABEL, "<composed>"));
@@ -758,8 +785,10 @@ public:
 			m_Properties->AppendIn(prop, new wxFloatProperty(_("y")));
 			prop->SetValueFromString(value);
 			m_Properties->Collapse(prop);
+			if (fromPackage)
+				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
-		else if (type.CompareTo(_("Vector3"), wxString::ignoreCase) == 0)
+		else if (type.CompareTo(_("vec3"), wxString::ignoreCase) == 0)
 		{
 			wxPGProperty* prop = m_Properties->AppendIn(m_CustomProperties,
 				new wxStringProperty(name, wxPG_LABEL, "<composed>"));
@@ -769,8 +798,10 @@ public:
 			m_Properties->AppendIn(prop, new wxFloatProperty(_("z")));
 			prop->SetValueFromString(value);
 			m_Properties->Collapse(prop);
+			if (fromPackage)
+				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
-		else if (type.CompareTo(_("Vector4"), wxString::ignoreCase) == 0)
+		else if (type.CompareTo(_("vec4"), wxString::ignoreCase) == 0)
 		{
 			wxPGProperty* prop = m_Properties->AppendIn(m_CustomProperties,
 				new wxStringProperty(name, wxPG_LABEL, "<composed>"));
@@ -781,6 +812,8 @@ public:
 			m_Properties->AppendIn(prop, new wxFloatProperty(_("w")));
 			prop->SetValueFromString(value);
 			m_Properties->Collapse(prop);
+			if (fromPackage)
+				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
 
 		m_Properties->Expand(m_CustomProperties);
@@ -807,8 +840,6 @@ ActorBrowser::ActorBrowser(wxWindow* parent)
 	tools->AddSeparator();
 	tools->AddTool(wxID_SAVE, _("Save"), wxArtProvider::GetBitmap(wxART_FILE_SAVE),
 		_("Save actor definition"));
-	tools->AddTool(wxID_SAVEAS, _("Save As"), wxArtProvider::GetBitmap(wxART_FILE_SAVE_AS),
-		_("Save actor definition as"));
 	tools->Realize();
 
 	m_Tree = new wxTreeCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
@@ -824,15 +855,14 @@ ActorBrowser::ActorBrowser(wxWindow* parent)
 	Bind(wxEVT_MENU, &ActorBrowser::OnToolAdd, this, wxID_NEW);
 	Bind(wxEVT_MENU, &ActorBrowser::OnToolOpen, this, wxID_OPEN);
 	Bind(wxEVT_MENU, &ActorBrowser::OnToolSave, this, wxID_SAVE);
-	Bind(wxEVT_MENU, &ActorBrowser::OnToolSaveAs, this, wxID_SAVEAS);
 	m_Tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &ActorBrowser::OnItemActivate, this);
 	m_Tree->Bind(wxEVT_TREE_SEL_CHANGED, &ActorBrowser::OnItemSelected, this);
 
-	// for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
-	// 	i != BrowserWindow::ms_Packages.end(); ++i)
-	// {
-	// 	LoadPackage(*i, true);
-	// }
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		LoadPackage(*i, true);
+	}
 }
 
 ActorBrowser::~ActorBrowser(void)
@@ -857,99 +887,139 @@ wxString ActorBrowser::GetDefinition(const wxString& name)
 	return wxEmptyString;
 }
 
+bool ActorBrowser::LoadPackage(const wxString& path, bool preload)
+{
+	if (!preload)
+	{
+		for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+			i != BrowserWindow::ms_Packages.end(); ++i)
+		{
+			if ((*i) == path)
+				return true; // already exists
+		}
+	}
+
+	wxFileInputStream inStream(path);
+	if (inStream.IsOk())
+	{
+		wxZipInputStream zipStream(inStream);
+		if (!zipStream.IsOk())
+		{
+			wxLogWarning(_("Unsupported archive: %s"), path);
+			return false;
+		}
+
+		if (!preload)
+			BrowserWindow::ms_Packages.push_back(path);
+
+		wxZipEntry* entry = zipStream.GetNextEntry();
+		while (entry)
+		{
+			wxFileName entryPath(entry->GetName());
+
+			// find all the actor files in the package
+			if (entryPath.GetExt().CmpNoCase(wxT("actor")) == 0)
+			{
+				wxString packagePath(path);
+				if (wxFileName(packagePath).GetExt().CmpNoCase(wxT("zip")) == 0)
+					packagePath.Append(wxT("#zip:"));
+				else if (wxFileName(packagePath).GetExt().CmpNoCase(wxT("mpk")) == 0)
+					packagePath.Append(wxT(":"));
+				packagePath.append(entryPath.GetFullPath());
+
+				wxStringOutputStream stream;
+				zipStream.Read(stream);
+				if (stream.IsOk())
+				{
+					wxStringInputStream xmlContent(stream.GetString());
+					wxXmlDocument doc(xmlContent);
+					if (doc.IsOk() &&
+						doc.GetRoot()->GetName().CompareTo(wxT("actor"), wxString::ignoreCase) == 0)
+					{
+						AddActor(doc, path, true);
+					}
+				}
+			}
+
+			entry->UnRef();
+			entry = zipStream.GetNextEntry();
+		}
+	}
+
+	return true;
+}
+
 void ActorBrowser::OnToolAdd(wxCommandEvent& event)
 {
+	wxString definitionFile;
+
+	wxFileDialog fileDialog(this,
+		_("New Actor definition"), wxEmptyString, wxEmptyString,
+		_("Actor Definition (*.actor)|*.actor"), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fileDialog.ShowModal() == wxID_CANCEL)
+		return;
+	definitionFile = fileDialog.GetPath();
+
 	EditActorDialog dialog(this, m_Categories);
 	if (dialog.ShowModal() == wxID_OK)
 	{
-		wxXmlDocument doc = dialog.GetDefinition();
-		AddActor(doc.GetRoot());
+		wxXmlDocument doc(dialog.GetDefinition());
+		if (doc.Save(definitionFile))
+			AddActor(doc, definitionFile, false);
 	}
 }
 
 void ActorBrowser::OnToolOpen(wxCommandEvent& event)
 {
 	wxFileDialog dialog(this,
-		_("Open Actor definition file"), wxEmptyString,
-		wxT("Actors.xml"), _("Actor Definition (*.xml)|*.xml"),
+		_("Open Actor definition file"), wxEmptyString, wxEmptyString,
+		_("Manifold Archive Package (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip|Actor Definition (*.actor)|*.actor"),
 		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 	if (dialog.ShowModal() == wxID_CANCEL)
 		return;
 
-	wxXmlDocument doc;
-	if (!doc.Load(dialog.GetPath()) ||
-		doc.GetRoot()->GetName().CompareTo(wxT("Actors"), wxString::ignoreCase) != 0)
+	// is it a raw .actor file?
+	wxFileName fn(dialog.GetPath());
+	if (fn.GetExt().CmpNoCase(wxT("actor")) == 0)
 	{
-		wxLogWarning(_("Invalid Actor Definition file: %s"), dialog.GetPath());
-		return;
+		wxXmlDocument doc;
+		if (!doc.Load(dialog.GetPath()) ||
+			doc.GetRoot()->GetName().CompareTo(wxT("actor"), wxString::ignoreCase) != 0)
+		{
+			wxLogWarning(_("Invalid Actor definition file: %s"), fn.GetFullPath());
+			return;
+		}
+
+		AddActor(doc, fn.GetFullPath(), false);
 	}
-
-	m_Tree->DeleteChildren(m_Root);
-
-	wxXmlNode* actor = doc.GetRoot()->GetChildren();
-	while (actor)
+	else
 	{
-		AddActor(actor);
-		actor = actor->GetNext();
+		LoadPackage(fn.GetFullPath());
 	}
-
-	m_DefinitionFile = wxFileName(dialog.GetPath());
 }
 
 void ActorBrowser::OnToolSave(wxCommandEvent& event)
 {
-	if (!m_DefinitionFile.IsOk())
+	wxTreeItemId selected = m_Tree->GetSelection();
+	if (!selected.IsOk())
+		wxMessageBox(_("No actor selected"), _("Select an actor to save"), wxICON_INFORMATION);
+	else
 	{
-		OnToolSaveAs(event);
-		return;
-	}
-
-	wxXmlDocument doc;
-	wxXmlNode* root = new wxXmlNode(nullptr, wxXML_ELEMENT_NODE, wxT("Actors"));
-	doc.SetRoot(root);
-
-	// walk the actor tree
-	wxTreeItemIdValue cookie;
-	wxTreeItemId item = m_Tree->GetFirstChild(m_Root, cookie);
-	while (item.IsOk())
-	{
-		wxTreeItemIdValue childCookie;
-		wxTreeItemId child = m_Tree->GetFirstChild(item, childCookie);
-		while (child.IsOk())
+		ActorItemData* data = dynamic_cast<ActorItemData*>(m_Tree->GetItemData(selected));
+		if (data && !data->FromPackage)
 		{
-			ActorItemData* data = dynamic_cast<ActorItemData*>(m_Tree->GetItemData(child));
-			if (data)
+			wxXmlDocument doc;
+			wxStringInputStream stream(data->Definition);
+			doc.Load(stream);
+			if (doc.Save(data->SourceFile))
 			{
-				wxStringInputStream stream(data->Definition);
-				wxXmlDocument _doc(stream);
-				wxXmlNode* node = _doc.GetRoot();
-
-				// append to the document
-				root->AddChild(new wxXmlNode(*node));
+				// remove the asterisk from the name
+				wxString name = m_Tree->GetItemText(selected);
+				name.RemoveLast();
+				m_Tree->SetItemText(selected, name);
 			}
-
-			child = m_Tree->GetNextChild(child, childCookie);
 		}
-
-		item = m_Tree->GetNextChild(item, cookie);
 	}
-
-	doc.Save(m_DefinitionFile.GetFullPath());
-}
-
-void ActorBrowser::OnToolSaveAs(wxCommandEvent& event)
-{
-	wxFileDialog dialog(this,
-		_("Save Actor Definition As..."), 
-		wxEmptyString,
-		wxT("Actors.xml"),
-		_("Actor Definition (*.xml)|*.xml"),
-		wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-	if (dialog.ShowModal() == wxID_CANCEL)
-		return; // not saving today
-
-	m_DefinitionFile = wxFileName(dialog.GetPath());
-	OnToolSave(event);
 }
 
 void ActorBrowser::OnItemActivate(wxTreeEvent& event)
@@ -959,10 +1029,10 @@ void ActorBrowser::OnItemActivate(wxTreeEvent& event)
 	if (data)
 	{
 		EditActorDialog dialog(this, m_Categories, data);
-		if (dialog.ShowModal() == wxID_OK)
+		// if the actor is from a package, we don't update it
+		if (dialog.ShowModal() == wxID_OK && !data->FromPackage)
 		{
-			wxXmlDocument doc = dialog.GetDefinition();
-			AddActor(doc.GetRoot());
+			AddActor(dialog.GetDefinition(), data->SourceFile, false);
 		}
 	}
 	else
@@ -982,32 +1052,49 @@ void ActorBrowser::OnItemSelected(wxTreeEvent& event)
 		m_Selected = wxEmptyString;
 }
 
-void ActorBrowser::AddActor(wxXmlNode* actor)
+void ActorBrowser::AddActor(const wxXmlDocument& definition, const wxString& sourceFile, bool fromPackage)
 {
-	if (actor->GetName().CompareTo(wxT("Actor"), wxString::ignoreCase) == 0)
+	wxXmlNode* actor = definition.GetRoot();
+	if (actor->GetName().CompareTo(wxT("actor"), wxString::ignoreCase) == 0)
 	{
-		wxString category = actor->GetAttribute(wxT("Category"));
+		wxString category = actor->GetAttribute(wxT("category"));
 		wxTreeItemId categoryId = FindItem(category, m_Root);
 		if (!categoryId.IsOk())
 		{
 			m_Categories.Add(category);
 			categoryId = m_Tree->AppendItem(m_Root, category);
+			m_Tree->SortChildren(m_Root);
 		}
 
 		// try to find the actor first, maybe it already exists and we are updating it
-		wxTreeItemId actorId = FindItem(actor->GetAttribute(wxT("Name")), categoryId);
+		wxString name = actor->GetAttribute(wxT("name"));
+		wxTreeItemId actorId = FindItem(name, categoryId);
 		if (actorId.IsOk())
 		{
 			// updating
-			delete m_Tree->GetItemData(actorId);
-			m_Tree->SetItemData(actorId, new ActorItemData(actor));
+			ActorItemData* data = dynamic_cast<ActorItemData*>(m_Tree->GetItemData(actorId));
+			if (data)
+			{
+				wxStringOutputStream stream;
+				definition.Save(stream);
+				data->Definition = stream.GetString();
+				data->SourceFile = sourceFile;
+				data->FromPackage = fromPackage;
+			}
+			else
+				m_Tree->SetItemData(actorId, new ActorItemData(actor, sourceFile, fromPackage));
+			
+			// append an asterisk to the name to indicate that it has been modified
+			m_Tree->SetItemText(actorId, name + wxT("*"));
+			m_Tree->EnsureVisible(actorId);
 		}
 		else
 		{
-			actorId = m_Tree->AppendItem(categoryId,
-				actor->GetAttribute(wxT("Name")));
-			m_Tree->SetItemData(actorId, new ActorItemData(actor));
+			actorId = m_Tree->AppendItem(categoryId, name);
+			m_Tree->SetItemData(actorId, new ActorItemData(actor, sourceFile, fromPackage));
 			m_Tree->EnsureVisible(actorId);
+
+			m_ItemPaths[actorId] = sourceFile;
 		}
 	}
 }
@@ -1020,7 +1107,8 @@ wxTreeItemId ActorBrowser::FindItem(const wxString& name, wxTreeItemId& start)
 	while (item.IsOk())
 	{
 		wxString itemName = m_Tree->GetItemText(item);
-		if (itemName.CompareTo(name, wxString::ignoreCase) == 0)
+		if (itemName.CompareTo(name, wxString::ignoreCase) == 0 ||
+			itemName.CompareTo(name + wxT("*"), wxString::ignoreCase) == 0)
 			return item;
 
 		// Recursively search children of this item

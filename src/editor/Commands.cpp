@@ -239,7 +239,7 @@ bool AddNodeCommand::Do(void)
 			return false;
 
 		// figure out the type of actor
-		wxString type = actorDefinition->GetAttribute("Type");
+		wxString type = actorDefinition->GetAttribute("type");
 		if (type.CmpNoCase("Model") == 0)
 		{
 			// A Model needs to have at least 2 attributes
@@ -253,7 +253,7 @@ bool AddNodeCommand::Do(void)
 
 			while (attributes)
 			{
-				if (attributes->GetName().CmpNoCase("String") == 0)
+				if (attributes->GetName().CmpNoCase("string") == 0)
 				{
 					if (attributes->HasAttribute("Mesh"))
 						mesh = attributes->GetAttribute("Mesh");
@@ -270,7 +270,7 @@ bool AddNodeCommand::Do(void)
 						}
 					}
 				}
-				else if (attributes->GetName().CmpNoCase("Float") == 0)
+				else if (attributes->GetName().CmpNoCase("float") == 0)
 				{
 					wxXmlAttribute* attribute = attributes->GetAttributes();
 					if (attribute) // we only have one attribute
@@ -282,7 +282,7 @@ bool AddNodeCommand::Do(void)
 							attribs->addFloat(key.c_str().AsChar(), f);
 					}
 				}
-				else if (attributes->GetName().CmpNoCase("Integer") == 0)
+				else if (attributes->GetName().CmpNoCase("int") == 0)
 				{
 					wxXmlAttribute* attribute = attributes->GetAttributes();
 					if (attribute) // we only have one attribute

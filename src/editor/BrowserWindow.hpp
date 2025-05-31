@@ -201,7 +201,9 @@ private:
 	wxTreeItemId m_Root;
 	wxArrayString m_Categories;
 
-	wxFileName m_DefinitionFile;
+	typedef std::map<wxTreeItemId, wxString> itempath_t;
+	itempath_t m_ItemPaths;
+	// wxArrayString m_DefinitionFiles;
 
 	wxString m_Selected;
 
@@ -218,13 +220,12 @@ private:
 	void OnToolAdd(wxCommandEvent& event);
 	void OnToolOpen(wxCommandEvent& event);
 	void OnToolSave(wxCommandEvent& event);
-	void OnToolSaveAs(wxCommandEvent& event);
 
 	void OnItemActivate(wxTreeEvent& event);
 	void OnItemSelected(wxTreeEvent& event);
 
 private:
-	void AddActor(wxXmlNode* actor);
+	void AddActor(const wxXmlDocument& definition, const wxString& sourceFile, bool fromPackage);
 	wxTreeItemId FindItem(const wxString& name, wxTreeItemId& start);
 };
 

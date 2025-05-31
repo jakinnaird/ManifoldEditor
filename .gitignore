@@ -19,6 +19,7 @@ bin/ManifoldEditor*
 !editor.mpk
 *.irr
 *.prefab
+*.actor
 
 # specific
 msw/obj
