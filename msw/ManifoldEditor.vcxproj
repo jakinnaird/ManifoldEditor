@@ -144,6 +144,7 @@
     <ClCompile Include="..\src\editor\BrowserWindow.cpp" />
     <ClCompile Include="..\src\editor\CGridSceneNode.cpp" />
     <ClCompile Include="..\src\editor\Commands.cpp" />
+    <ClCompile Include="..\src\editor\Convert.cpp" />
     <ClCompile Include="..\src\editor\CSceneNodeAnimatorCameraOrtho.cpp" />
     <ClCompile Include="..\src\editor\Editor.cpp" />
     <ClCompile Include="..\src\editor\Entry.cpp" />
@@ -175,6 +176,7 @@
     <ClInclude Include="..\src\editor\CGridSceneNode.h" />
     <ClInclude Include="..\src\editor\Commands.hpp" />
     <ClInclude Include="..\src\editor\Common.hpp" />
+    <ClInclude Include="..\src\editor\Convert.hpp" />
     <ClInclude Include="..\src\editor\CSceneNodeAnimatorCameraOrtho.h" />
     <ClInclude Include="..\src\editor\Editor.hpp" />
     <ClInclude Include="..\src\editor\ExplorerPanel.hpp" />

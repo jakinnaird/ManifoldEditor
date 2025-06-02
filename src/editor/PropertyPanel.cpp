@@ -5,6 +5,7 @@
 */
 
 #include "Commands.hpp"
+#include "Convert.hpp"
 #include "MapEditor.hpp"
 #include "PropertyPanel.hpp"
 #include "../extend/CylinderSceneNode.hpp"
@@ -44,9 +45,7 @@ PropertyPanel::PropertyPanel(wxWindow* parent, wxCommandProcessor& cmdProc)
 
 	m_Properties = new wxPropertyGrid(this, wxID_ANY, wxDefaultPosition,
 		wxDefaultSize, wxPG_SPLITTER_AUTO_CENTER | wxPG_DEFAULT_STYLE);
-
 	m_Properties->EnableCategories(true);
-	m_Properties->MakeColumnEditable(0);
 
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(m_ToolBar, wxSizerFlags(1).Expand());
@@ -501,119 +500,6 @@ void PropertyPanel::OnValueChanging(wxPropertyGridEvent& event)
 	}
 }
 
-irr::core::vector3df valueToVec3(const wxString& value)
-{
-	std::istringstream iss(value.utf8_string());
-	std::string token;
-
-	// X
-	double _x = 0;
-	std::getline(iss, token, ';');
-	wxString _token(token);
-	_token.ToDouble(&_x);
-
-	// Y
-	double _y = 0;
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToDouble(&_y);
-
-	// Z
-	double _z = 0;
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToDouble(&_z);
-
-	return irr::core::vector3df(_x, _y, _z);
-}
-
-irr::core::vector2df valueToVec2(const wxString& value)
-{
-	std::istringstream iss(value.utf8_string());
-	std::string token;
-
-	// X
-	double _x = 0;
-	std::getline(iss, token, ';');
-	wxString _token(token);
-	_token.ToDouble(&_x);
-
-	// Y
-	double _y = 0;
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToDouble(&_y);
-
-	return irr::core::vector2df(_x, _y);
-}
-
-irr::core::dimension2df valueToDim2df(const wxString& value)
-{
-	irr::core::dimension2df result;
-
-	std::istringstream iss(value.utf8_string());
-	std::string token;
-
-	double _value = 0;
-	std::getline(iss, token, ';');
-	wxString _token(token);
-	_token.ToDouble(&_value);
-	result.Width = _value;
-
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToDouble(&_value);
-	result.Height = _value;
-
-	return result;
-}
-
-irr::core::dimension2du valueToDim2du(const wxString& value)
-{
-	irr::core::dimension2du result;
-
-	std::istringstream iss(value.utf8_string());
-	std::string token;
-
-	std::getline(iss, token, ';');
-	wxString _token(token);
-	_token.ToUInt(&result.Width);
-
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToUInt(&result.Height);
-
-	return result;
-}
-
-irr::video::SColor valueToColor(const wxString& value)
-{
-	std::istringstream iss(value.utf8_string());
-	std::string token;
-
-	irr::u32 alpha = 255;
-	std::getline(iss, token, ';');
-	wxString _token(token);
-	_token.ToUInt(&alpha);
-
-	irr::u32 red = 255;
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToUInt(&red);
-
-	irr::u32 green = 255;
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToUInt(&green);
-
-	irr::u32 blue = 255;
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToUInt(&blue);
-
-	return irr::video::SColor(alpha, red, green, blue);
-}
-
 void PropertyPanel::OnValueChanged(wxPropertyGridEvent& event)
 {
 	wxString propName(event.GetPropertyName());
@@ -733,80 +619,22 @@ void PropertyPanel::OnValueChanged(wxPropertyGridEvent& event)
 		wxEnumProperty* prop = (wxEnumProperty*)event.GetProperty();
 		wxString nodeName = prop->GetChoices().GetLabel((long)event.GetPropertyValue());
 
-		ViewPanel* viewPanel = ((MapEditor*)GetParent())->GetViewPanel();
-
-		PathSceneNode* pathNode = dynamic_cast<PathSceneNode*>(m_SceneNode);
-		if (nodeName.CompareTo(wxT("--none--")) == 0)
-		{
-			pathNode->setPrev(nullptr);
-		}
-		else
-		{
-			PathSceneNode* other = dynamic_cast<PathSceneNode*>(
-				m_SceneNode->getSceneManager()
-				->getSceneNodeFromName(nodeName.c_str().AsChar(), nullptr));
-			if (other)
-			{
-				pathNode->setPrev(other);
-				pathNode->setPathName(other->getPathName());
-				pathNode->drawLink(true);
-			}
-		}
+		m_Commands.Submit(new UpdatePathLinkCommand(m_SceneNode->getSceneManager(),
+			m_SceneNode->getName(), nodeName, wxEmptyString, true, false));
 	}
 	else if (propName.StartsWith(_("Next Node")))
 	{
 		wxEnumProperty* prop = (wxEnumProperty*)event.GetProperty();
 		wxString nodeName = prop->GetChoices().GetLabel((long)event.GetPropertyValue());
 
-		ViewPanel* viewPanel = ((MapEditor*)GetParent())->GetViewPanel();
-
-		PathSceneNode* pathNode = dynamic_cast<PathSceneNode*>(m_SceneNode);
-		if (nodeName.CompareTo(wxT("--none--")) == 0)
-		{
-			pathNode->setNext(nullptr);
-		}
-		else
-		{
-			PathSceneNode* other = dynamic_cast<PathSceneNode*>(
-				m_SceneNode->getSceneManager()
-				->getSceneNodeFromName(nodeName.c_str().AsChar(), nullptr));
-			if (other)
-			{
-				pathNode->setNext(other);
-				pathNode->setPathName(other->getPathName());
-				pathNode->drawLink(true);
-			}
-		}
+		m_Commands.Submit(new UpdatePathLinkCommand(m_SceneNode->getSceneManager(),
+			m_SceneNode->getName(), wxEmptyString, nodeName, false, true));
 	}
 	else
 	{
-		// custom property
-		irr::io::IAttributes* attribs = m_Map->GetAttributes(m_SceneNode->getName());
 		wxPGProperty* property = event.GetProperty();
 		PropertyClientData* clientData = static_cast<PropertyClientData*>(property->GetClientData());
-		switch (clientData->m_Type)
-		{
-		case irr::io::EAT_STRING:
-			attribs->setAttribute(property->GetName(), event.GetValue().GetString().c_str().AsChar());
-			break;
-		case irr::io::EAT_VECTOR3D:
-			attribs->setAttribute(property->GetName(), valueToVec3(event.GetValue()));
-			break;
-		case irr::io::EAT_VECTOR2D:
-			attribs->setAttribute(property->GetName(), valueToVec2(event.GetValue()));
-			break;
-		case irr::io::EAT_COLOR:
-			attribs->setAttribute(property->GetName(), valueToColor(event.GetValue()));
-			break;
-		case irr::io::EAT_FLOAT:
-			attribs->setAttribute(property->GetName(), (float)event.GetValue().GetDouble());
-			break;
-		case irr::io::EAT_BOOL:
-			attribs->setAttribute(property->GetName(), event.GetValue().GetBool());
-			break;
-		case irr::io::EAT_INT:
-			attribs->setAttribute(property->GetName(), (int)event.GetValue().GetLong());
-			break;
-		}
+		m_Commands.Submit(new UpdateActorAttributeCommand(clientData->m_Type,
+			m_SceneNode->getName(), m_Map, this, property->GetName(), event.GetValue()));
 	}
 }

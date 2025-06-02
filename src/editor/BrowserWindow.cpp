@@ -436,7 +436,6 @@ public:
 		INTEGER,
 		VECTOR2,
 		VECTOR3,
-		VECTOR4
 	} Type;
 
 public:
@@ -457,8 +456,6 @@ public:
 			return wxT("vec2");
 		case VECTOR3:
 			return wxT("vec3");
-		case VECTOR4:
-			return wxT("vec4");
 		}
 
 		return wxEmptyString;
@@ -715,7 +712,6 @@ public:
 		propertyChoices.Add(_("int"));
 		propertyChoices.Add(_("vec2"));
 		propertyChoices.Add(_("vec3"));
-		propertyChoices.Add(_("vec4"));
 
 		wxSingleChoiceDialog dialog(this, _("Select property type"),
 			_("Add custom property"), propertyChoices, nullptr, wxOK | wxCANCEL | wxCENTRE);
@@ -796,20 +792,6 @@ public:
 			m_Properties->AppendIn(prop, new wxFloatProperty(_("x")));
 			m_Properties->AppendIn(prop, new wxFloatProperty(_("y")));
 			m_Properties->AppendIn(prop, new wxFloatProperty(_("z")));
-			prop->SetValueFromString(value);
-			m_Properties->Collapse(prop);
-			if (fromPackage)
-				prop->ChangeFlag(wxPG_PROP_READONLY, true);
-		}
-		else if (type.CompareTo(_("vec4"), wxString::ignoreCase) == 0)
-		{
-			wxPGProperty* prop = m_Properties->AppendIn(m_CustomProperties,
-				new wxStringProperty(name, wxPG_LABEL, "<composed>"));
-			prop->SetClientObject(new PropertyType(PropertyType::VECTOR4));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("x")));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("y")));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("z")));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("w")));
 			prop->SetValueFromString(value);
 			m_Properties->Collapse(prop);
 			if (fromPackage)

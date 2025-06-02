@@ -295,3 +295,50 @@ public:
 	wxString GetName(void) const;
 	bool Undo(void);
 };
+
+class UpdatePathLinkCommand : public wxCommand
+{
+private:
+	irr::scene::ISceneManager* m_SceneMgr;
+	wxString m_PathNode;
+	wxString m_PrevNode;
+	wxString m_NextNode;
+	bool m_UpdatePrev;
+	bool m_UpdateNext;
+
+public:
+	UpdatePathLinkCommand(irr::scene::ISceneManager* sceneMgr,
+		const wxString& pathNode, const wxString& prevNode, const wxString& nextNode,
+		bool updatePrev, bool updateNext);
+	virtual ~UpdatePathLinkCommand(void);
+
+	bool CanUndo(void) const;
+	bool Do(void);
+	wxString GetName(void) const;
+	bool Undo(void);
+};
+
+class UpdateActorAttributeCommand : public wxCommand
+{
+private:
+	irr::io::E_ATTRIBUTE_TYPE m_Type;
+	wxString m_SceneNode;
+	std::shared_ptr<Map> m_Map;
+	PropertyPanel* m_PropertyPanel;
+	wxString m_Attribute;
+	wxString m_Value;
+
+public:
+	UpdateActorAttributeCommand(irr::io::E_ATTRIBUTE_TYPE type,
+		const wxString& sceneNode,
+		std::shared_ptr<Map>& map,
+		PropertyPanel* propertyPanel,
+		const wxString& attribute, const wxString& value);
+	virtual ~UpdateActorAttributeCommand(void);
+
+	bool CanUndo(void) const;
+	bool Do(void);
+	wxString GetName(void) const;
+	bool Undo(void);
+};
+

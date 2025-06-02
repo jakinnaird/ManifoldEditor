@@ -29,6 +29,7 @@ add_executable(ManifoldEditor
     ../../src/editor/BrowserWindow.cpp
     ../../src/editor/CGridSceneNode.cpp
     ../../src/editor/Commands.cpp
+    ../../src/editor/Convert.cpp
     ../../src/editor/CSceneNodeAnimatorCameraOrtho.cpp
     ../../src/editor/Editor.cpp
     ../../src/editor/Entry.cpp
