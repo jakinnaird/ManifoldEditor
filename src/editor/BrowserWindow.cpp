@@ -6,6 +6,8 @@
 
 #include "BrowserWindow.hpp"
 #include "Common.hpp"
+#include "Component.hpp"
+#include "Convert.hpp"
 #include "FSHandler.hpp"
 
 #include <wx/artprov.h>
@@ -15,6 +17,7 @@
 #include <wx/filedlg.h>
 #include <wx/filefn.h>
 #include <wx/log.h>
+#include <wx/menu.h>
 #include <wx/mimetype.h>
 #include <wx/msgdlg.h>
 #include <wx/mstream.h>
@@ -25,6 +28,7 @@
 #include <wx/zipstrm.h>
 
 BrowserWindow::packagelist_t BrowserWindow::ms_Packages;
+BrowserWindow::definitionlist_t BrowserWindow::ms_Definitions;
 
 BrowserWindow::BrowserWindow(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, wxEmptyString)
@@ -122,6 +126,18 @@ void BrowserWindow::AddPackage(const wxString& path)
 	}
 
 	ms_Packages.push_back(path);
+}
+
+void BrowserWindow::AddDefinition(const wxString& path)
+{
+	for (definitionlist_t::iterator i = ms_Definitions.begin();
+		i != ms_Definitions.end(); ++i)
+	{
+		if ((*i) == path)
+			return; // already exists
+	}
+
+	ms_Definitions.push_back(path);	
 }
 
 void BrowserWindow::OnCloseEvent(wxCloseEvent& event)
@@ -491,6 +507,7 @@ private:
 	wxPropertyGrid* m_Properties;
 	wxPGProperty* m_GeneralProperties;
 	wxPGProperty* m_CustomProperties;
+	wxPGProperty* m_Components;
 	wxArrayString m_ActorCategories;
 
 	int32_t m_NextId;
@@ -508,9 +525,15 @@ public:
 		wxToolBar* toolBar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
 			wxTB_FLAT | wxTB_HORIZONTAL);
 		wxToolBarToolBase* addTool = toolBar->AddTool(wxID_ADD, _("Add"), wxArtProvider::GetBitmap(wxART_PLUS),
-			_("Add custom property"));
+			_("Add element to actor"), wxITEM_DROPDOWN);
 		wxToolBarToolBase* removeTool = toolBar->AddTool(wxID_REMOVE, _("Delete"), wxArtProvider::GetBitmap(wxART_MINUS),
-			_("Delete custom property"));
+			_("Delete element from actor"));
+
+		wxMenu* addMenu = new wxMenu();
+		addMenu->Append(MENU_ADDPROPERTY, _("Add property to actor"));
+		addMenu->Append(MENU_ADDCOMPONENT, _("Add component to actor"));
+		toolBar->SetDropdownMenu(wxID_ADD, addMenu);
+
 		toolBar->Realize();
 		sizer->Add(toolBar, wxSizerFlags().Expand());
 
@@ -523,8 +546,10 @@ public:
 
 		m_GeneralProperties = new wxPropertyCategory(_("General"));
 		m_CustomProperties = new wxPropertyCategory(_("Properties"));
+		m_Components = new wxPropertyCategory(_("Components"));
 		m_Properties->Append(m_GeneralProperties);
 		m_Properties->Append(m_CustomProperties);
+		m_Properties->Append(m_Components);
 
 		// name
 		wxStringProperty* name = new wxStringProperty(_("Name"));
@@ -569,15 +594,37 @@ public:
 						wxXmlAttribute* attribute = property->GetAttributes();
 
 						// there should only be 1 attribute per node, so work with that
-						AddCustomAttribute(property->GetName(), attribute->GetName(),
-							attribute->GetValue(), data->FromPackage);
+						AddCustomAttribute(m_CustomProperties, property->GetName(),
+							attribute->GetName(), attribute->GetValue(), data->FromPackage);
 
 						property = property->GetNext();
 					}
 				}
 				else if (child->GetName().CompareTo(wxT("components"), wxString::ignoreCase) == 0)
 				{
-					// TODO: add components
+					wxXmlNode* component = child->GetChildren();
+					while (component)
+					{
+						wxXmlAttribute* attribute = component->GetAttributes();
+						wxString componentName = attribute->GetValue();
+
+						wxPGProperty* componentProperty = new wxStringProperty(componentName, wxPG_LABEL, "<composed>");
+						m_Properties->AppendIn(m_Components, componentProperty);
+
+						wxXmlNode* property = component->GetChildren();
+						while (property)
+						{
+							wxXmlAttribute* attribute = property->GetAttributes();
+
+							// there should only be 1 attribute per node, so work with that
+							AddCustomAttribute(componentProperty, property->GetName(),
+								attribute->GetName(), attribute->GetValue(), data->FromPackage);
+
+							property = property->GetNext();
+						}
+
+						component = component->GetNext();
+					}
 				}
 
 				child = child->GetNext();
@@ -599,7 +646,8 @@ public:
 		SetSizerAndFit(sizer);
 
 		Bind(wxEVT_BUTTON, &EditActorDialog::OnOKEvent, this, wxID_OK);
-		Bind(wxEVT_MENU, &EditActorDialog::OnToolAdd, this, wxID_ADD);
+		Bind(wxEVT_MENU, &EditActorDialog::OnToolAddProperty, this, MENU_ADDPROPERTY);
+		Bind(wxEVT_MENU, &EditActorDialog::OnToolAddComponent, this, MENU_ADDCOMPONENT);
 		Bind(wxEVT_MENU, &EditActorDialog::OnToolRemove, this, wxID_REMOVE);
 		m_Properties->Bind(wxEVT_PG_LABEL_EDIT_BEGIN, &EditActorDialog::OnLabelEditBegin,
 			this);
@@ -664,7 +712,7 @@ public:
 	{
 		wxPGProperty* parent = event.GetProperty()->GetParent();
 		if (event.GetProperty()->IsCategory() ||
-			parent->IsCategory() && parent->GetLabel() == _("General"))
+			parent->IsCategory() && parent->GetLabel().CmpNoCase(_("General")) == 0)
 			event.Veto(); // we do not allow editing labels under General
 	}
 
@@ -680,8 +728,8 @@ public:
 				RemoveCustomAttribute(_("Emitter"));
 
 				// add mesh and texture custom properties
-				AddCustomAttribute(_("string"), _("Mesh"));
-				AddCustomAttribute(_("string"), _("Texture"));
+				AddCustomAttribute(m_CustomProperties, _("string"), _("Mesh"));
+				AddCustomAttribute(m_CustomProperties, _("string"), _("Texture"));
 			}
 			else if (prop->GetValueAsString().CompareTo(_("Emitter"), wxString::ignoreCase) == 0)
 			{
@@ -690,7 +738,7 @@ public:
 				RemoveCustomAttribute(_("Texture"));
 
 				// add emitter custom properties
-				AddCustomAttribute(_("string"), _("Emitter"));
+				AddCustomAttribute(m_CustomProperties, _("string"), _("Emitter"));
 			}
 			else if (prop->GetValueAsString().CompareTo(_("Custom"), wxString::ignoreCase) == 0)
 			{
@@ -704,7 +752,7 @@ public:
 		}
 	}
 
-	void OnToolAdd(wxCommandEvent& event)
+	void OnToolAddProperty(wxCommandEvent& event)
 	{
 		wxArrayString propertyChoices;
 		propertyChoices.Add(_("string"));
@@ -728,8 +776,12 @@ public:
 			} while (true);
 
 			wxString selection = dialog.GetStringSelection();
-			AddCustomAttribute(selection, propName);
+			AddCustomAttribute(m_CustomProperties, selection, propName);
 		}
+	}
+
+	void OnToolAddComponent(wxCommandEvent& event)
+	{
 	}
 
 	void OnToolRemove(wxCommandEvent& event)
@@ -742,7 +794,7 @@ public:
 		m_Properties->DeleteProperty(selection);
 	}
 
-	void AddCustomAttribute(const wxString& type, const wxString& name,
+	void AddCustomAttribute(wxPGProperty* parent, const wxString& type, const wxString& name,
 		const wxString& value = wxEmptyString, bool fromPackage = false)
 	{
 		if (type.CompareTo(_("string"), wxString::ignoreCase) == 0)
@@ -750,7 +802,7 @@ public:
 			wxPGProperty* prop = new wxStringProperty(name);
 			prop->SetValueFromString(value);
 			prop->SetClientObject(new PropertyType(PropertyType::STRING));
-			m_Properties->AppendIn(m_CustomProperties, prop);
+			m_Properties->AppendIn(parent, prop);
 			if (fromPackage)
 				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
@@ -759,7 +811,7 @@ public:
 			wxPGProperty* prop = new wxFloatProperty(name);
 			prop->SetValueFromString(value);
 			prop->SetClientObject(new PropertyType(PropertyType::FLOAT));
-			m_Properties->AppendIn(m_CustomProperties, prop);
+			m_Properties->AppendIn(parent, prop);
 			if (fromPackage)
 				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
@@ -768,37 +820,42 @@ public:
 			wxPGProperty* prop = new wxIntProperty(name);
 			prop->SetValueFromString(value);
 			prop->SetClientObject(new PropertyType(PropertyType::INTEGER));
-			m_Properties->AppendIn(m_CustomProperties, prop);
+			m_Properties->AppendIn(parent, prop);
 			if (fromPackage)
 				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
 		else if (type.CompareTo(_("vec2"), wxString::ignoreCase) == 0)
 		{
-			wxPGProperty* prop = m_Properties->AppendIn(m_CustomProperties,
+			// the value is a pair of floats, separated by EITHER a space or a semicolon
+			irr::core::vector2df vec2 = valueToVec2(value);
+
+			wxPGProperty* prop = m_Properties->AppendIn(parent,
 				new wxStringProperty(name, wxPG_LABEL, "<composed>"));
 			prop->SetClientObject(new PropertyType(PropertyType::VECTOR2));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("x")));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("y")));
-			prop->SetValueFromString(value);
+			m_Properties->AppendIn(prop, new wxFloatProperty(_("x"), wxPG_LABEL, vec2.X));
+			m_Properties->AppendIn(prop, new wxFloatProperty(_("y"), wxPG_LABEL, vec2.Y));
+			// prop->SetValueFromString(value);
 			m_Properties->Collapse(prop);
 			if (fromPackage)
 				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
 		else if (type.CompareTo(_("vec3"), wxString::ignoreCase) == 0)
 		{
-			wxPGProperty* prop = m_Properties->AppendIn(m_CustomProperties,
+			irr::core::vector3df vec3 = valueToVec3(value);
+
+			wxPGProperty* prop = m_Properties->AppendIn(parent,
 				new wxStringProperty(name, wxPG_LABEL, "<composed>"));
 			prop->SetClientObject(new PropertyType(PropertyType::VECTOR3));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("x")));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("y")));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("z")));
-			prop->SetValueFromString(value);
+			m_Properties->AppendIn(prop, new wxFloatProperty(_("x"), wxPG_LABEL, vec3.X));
+			m_Properties->AppendIn(prop, new wxFloatProperty(_("y"), wxPG_LABEL, vec3.Y));
+			m_Properties->AppendIn(prop, new wxFloatProperty(_("z"), wxPG_LABEL, vec3.Z));
+			// prop->SetValueFromString(value);
 			m_Properties->Collapse(prop);
 			if (fromPackage)
 				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
 
-		m_Properties->Expand(m_CustomProperties);
+		m_Properties->Expand(parent);
 	}
 
 	void RemoveCustomAttribute(const wxString& name)
@@ -844,6 +901,12 @@ ActorBrowser::ActorBrowser(wxWindow* parent)
 		i != BrowserWindow::ms_Packages.end(); ++i)
 	{
 		LoadPackage(*i, true);
+	}
+
+	for (BrowserWindow::definitionlist_t::iterator i = BrowserWindow::ms_Definitions.begin();
+		i != BrowserWindow::ms_Definitions.end(); ++i)
+	{
+		LoadDefinition(*i, true);
 	}
 }
 
@@ -922,11 +985,71 @@ bool ActorBrowser::LoadPackage(const wxString& path, bool preload)
 					}
 				}
 			}
+			else if (entryPath.GetExt().CmpNoCase(wxT("component")) == 0)
+			{
+				// we process components here as well
+				wxString packagePath(path);
+				if (wxFileName(packagePath).GetExt().CmpNoCase(wxT("zip")) == 0)
+					packagePath.Append(wxT("#zip:"));
+				else if (wxFileName(packagePath).GetExt().CmpNoCase(wxT("mpk")) == 0)
+					packagePath.Append(wxT(":"));
+				packagePath.append(entryPath.GetFullPath());
+
+				wxStringOutputStream stream;
+				zipStream.Read(stream);
+				if (stream.IsOk())
+				{
+					wxStringInputStream xmlContent(stream.GetString());
+					wxXmlDocument doc(xmlContent);
+					if (doc.IsOk() &&
+						doc.GetRoot()->GetName().CompareTo(wxT("component"), wxString::ignoreCase) == 0)
+					{
+						ComponentFactory::RegisterComponent(doc.GetRoot()->GetAttribute(wxT("name")), doc);
+					}
+				}
+			}
 
 			entry->UnRef();
 			entry = zipStream.GetNextEntry();
 		}
 	}
+
+	return true;
+}
+
+bool ActorBrowser::LoadDefinition(const wxString& path, bool preload)
+{
+	if (!preload)
+	{
+		for (BrowserWindow::definitionlist_t::iterator i = BrowserWindow::ms_Definitions.begin();
+			i != BrowserWindow::ms_Definitions.end(); ++i)
+		{
+			if ((*i) == path)
+				return true; // already exists
+		}
+	}
+
+	wxFileName fn(path);
+
+	wxXmlDocument doc;
+	if (!doc.Load(fn.GetFullPath()))
+		return false;
+
+	if (fn.GetExt().CmpNoCase(wxT("actor")) == 0 &&
+		doc.GetRoot()->GetName().CompareTo(wxT("actor"), wxString::ignoreCase) == 0)
+	{
+		AddActor(doc, path, false);
+	}
+	else if (fn.GetExt().CmpNoCase(wxT("component")) == 0 &&
+		doc.GetRoot()->GetName().CompareTo(wxT("component"), wxString::ignoreCase) == 0)
+	{
+		ComponentFactory::RegisterComponent(doc.GetRoot()->GetAttribute(wxT("name")), doc);
+	}
+	else
+		return true; // we don't process this file
+
+	if (!preload)
+		BrowserWindow::ms_Definitions.push_back(path);
 
 	return true;
 }
@@ -1032,6 +1155,13 @@ void ActorBrowser::OnItemSelected(wxTreeEvent& event)
 	}
 	else
 		m_Selected = wxEmptyString;
+
+	if (!m_Selected.IsEmpty())
+	{
+		// remove the asterisk from the name, if it exists
+		if (m_Selected.Last() == wxT('*'))
+			m_Selected.RemoveLast();
+	}
 }
 
 void ActorBrowser::AddActor(const wxXmlDocument& definition, const wxString& sourceFile, bool fromPackage)
@@ -1371,6 +1501,12 @@ MeshBrowser::MeshBrowser(wxWindow* parent)
 	{
 		LoadPackage(*i, true);
 	}
+
+	for (BrowserWindow::definitionlist_t::iterator i = BrowserWindow::ms_Definitions.begin();
+		i != BrowserWindow::ms_Definitions.end(); ++i)
+	{
+		LoadDefinition(*i, true);
+	}
 }
 
 MeshBrowser::~MeshBrowser(void)
@@ -1429,6 +1565,43 @@ bool MeshBrowser::LoadPackage(const wxString& path, bool preload)
 			entry = zipStream.GetNextEntry();
 		}
 	}
+
+	return true;
+}
+
+bool MeshBrowser::LoadDefinition(const wxString& path, bool preload)
+{
+	if (!preload)
+	{
+		for (BrowserWindow::definitionlist_t::iterator i = BrowserWindow::ms_Definitions.begin();
+			i != BrowserWindow::ms_Definitions.end(); ++i)
+		{
+			if ((*i) == path)
+				return true; // already exists
+		}
+	}
+
+	wxFileName fn(path);
+	wxXmlDocument doc;
+	if (!doc.Load(fn.GetFullPath()))
+		return false;
+
+	if (fn.GetExt().CmpNoCase(wxT("prefab")) == 0 &&
+		doc.GetRoot()->GetName().CompareTo(wxT("prefab"), wxString::ignoreCase) == 0)
+	{
+		// add this to the list
+		long index = m_List->InsertItem(m_List->GetItemCount(), fn.GetName());
+
+		wxStringOutputStream prefabStream;
+		doc.Save(prefabStream);
+		m_ItemDefinitions[index] = prefabStream.GetString();
+		m_List->SetItem(index, COL_PACKAGE, fn.GetFullPath());
+	}
+	else
+		return true; // we don't process this file
+
+	if (!preload)
+		BrowserWindow::ms_Definitions.push_back(path);
 
 	return true;
 }

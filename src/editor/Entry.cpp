@@ -161,6 +161,10 @@ public:
 							if (fn.GetExt().CmpNoCase(wxT("mpk")) == 0 ||
 								fn.GetExt().CmpNoCase(wxT("zip")) == 0)
 								BrowserWindow::AddPackage(fn.GetFullPath());
+							else if (fn.GetExt().CmpNoCase(wxT("actor")) == 0 ||
+								fn.GetExt().CmpNoCase(wxT("component")) == 0 ||
+								fn.GetExt().CmpNoCase(wxT("prefab")) == 0)
+								BrowserWindow::AddDefinition(fn.GetFullPath());
 
 							cont = dir.GetNext(&filename);
 						}

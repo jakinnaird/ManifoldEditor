@@ -38,6 +38,7 @@ private:
 	wxPropertyGrid* m_Properties;
 	wxPGProperty* m_GeneralProperties;
 	wxPGProperty* m_CustomProperties;
+	wxPGProperty* m_Components;
 
 	irr::scene::ISceneNode* m_SceneNode;
 
@@ -106,4 +107,14 @@ private:
 	 * @param event The property grid event
 	 */
 	void OnValueChanged(wxPropertyGridEvent& event);
+
+	/**
+	 * @brief Add an attribute to the property panel
+	 * @param parent The parent property
+	 * @param type The type of the attribute
+	 * @param name The name of the attribute
+	 * @param value The value of the attribute
+	 */
+	void AddAttribute(wxPGProperty* parent, const irr::io::E_ATTRIBUTE_TYPE& type, 
+		const wxString& name, const wxString& value);
 };

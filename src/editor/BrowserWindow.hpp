@@ -64,6 +64,9 @@ protected:
 	typedef std::list<wxString> packagelist_t;
 	static packagelist_t ms_Packages;
 
+	typedef std::list<wxString> definitionlist_t;
+	static definitionlist_t ms_Definitions;
+
 private:
 	wxNotebook* m_Notebook;     ///< Notebook for page management
 	ActorBrowser* m_Actors;     ///< Actor browser panel
@@ -137,6 +140,12 @@ public:
 	 * @param path The path to the package
 	 */
 	static void AddPackage(const wxString& path);
+
+	/**
+	 * @brief Add a definition to the browser
+	 * @param path The path to the definition
+	 */
+	static void AddDefinition(const wxString& path);
 
 private:
 	/**
@@ -216,6 +225,7 @@ public:
 
 private:
 	bool LoadPackage(const wxString& path, bool preload = false);
+	bool LoadDefinition(const wxString& path, bool preload = false);
 
 	void OnToolAdd(wxCommandEvent& event);
 	void OnToolOpen(wxCommandEvent& event);
@@ -292,6 +302,7 @@ public:
 
 private:
 	bool LoadPackage(const wxString& path, bool preload = false);
+	bool LoadDefinition(const wxString& path, bool preload = false);
 
 	void OnToolAdd(wxCommandEvent& event);
 	void OnToolOpen(wxCommandEvent& event);

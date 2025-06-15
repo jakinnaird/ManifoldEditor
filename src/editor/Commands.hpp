@@ -342,3 +342,28 @@ public:
 	bool Undo(void);
 };
 
+class UpdateComponentAttributeCommand : public wxCommand
+{
+private:
+	irr::io::E_ATTRIBUTE_TYPE m_Type;
+	wxString m_SceneNode;
+	std::shared_ptr<Map> m_Map;
+	PropertyPanel* m_PropertyPanel;
+	irr::scene::ESCENE_NODE_ANIMATOR_TYPE m_Component;
+	wxString m_Attribute;
+	wxString m_Value;
+
+public:
+	UpdateComponentAttributeCommand(irr::io::E_ATTRIBUTE_TYPE type,
+		const wxString& sceneNode,
+		std::shared_ptr<Map>& map,
+		PropertyPanel* propertyPanel,
+		const irr::scene::ESCENE_NODE_ANIMATOR_TYPE& component,
+		const wxString& attribute, const wxString& value);
+	virtual ~UpdateComponentAttributeCommand(void);
+
+	bool CanUndo(void) const;
+	bool Do(void);
+	wxString GetName(void) const;
+	bool Undo(void);
+};

@@ -18,7 +18,14 @@ Example
     <string Texture="demo.zip:textures/sydney.bmp"/>
     <string Mesh="demo.zip:models/sydney.md2"/>
   </properties>
-  <components />
+  <components>
+    <component name="Collider">
+      <float softness="0.1" />
+    </component>
+    <component name="Solid">
+      <vec3 mass="1.0 1.0 1.0" />
+    </component>
+  </components>
 </actor>
 ```
 
@@ -55,9 +62,6 @@ Properties define Actor specific data elements. The available data types for pro
 
   e.g. \<vec3 AreaOfEffect="10.0 30.5 11.1" \>
 
-- vec4: 4D vector
-
-  e.g. \<vec4 Example="1.0 1.0 1.0 1.0" \>
-
 ### Components
-TODO
+
+Components are populated based on [.component](COMPONENTS.md) file definitions.

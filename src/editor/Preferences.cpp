@@ -48,9 +48,6 @@ PreferencesWindow::PreferencesWindow(wxWindow* parent)
 		} while (config->GetNextEntry(entry, cookie));
 	}
 
-
-	m_Properties->ShowHeader();
-
 	sizer->Add(m_Properties, wxSizerFlags(9).Expand());
 	sizer->Add(CreateSeparatedButtonSizer(wxOK | wxCANCEL | wxAPPLY),
 		wxSizerFlags(1).Expand());

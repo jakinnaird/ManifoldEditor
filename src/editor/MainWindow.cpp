@@ -41,7 +41,7 @@ enum STATUSBAR_SECTIONS
 
 MainWindow::MainWindow(void)
     : wxFrame(nullptr, wxID_ANY, APP_NAME, wxDefaultPosition,
-        wxSize(1024, 768))
+        wxSize(1280, 768))
 {
 #if defined(__WXMSW__)
     SetIcon(wxICON(IDI_ICON1));
@@ -403,8 +403,10 @@ void MainWindow::OnFileOpenProject(wxCommandEvent& event)
             m_ActiveEditor->OnSave(true);
     }
 
+    wxString projectPath = wxConfigBase::Get()->Read(wxT("/Paths/ProjectPath"));
+
     wxFileDialog openDialog(this,
-        _("Open project"), wxEmptyString, wxEmptyString,
+        _("Open project"), projectPath, wxEmptyString,
         _("Manifold Editor Project (*.mep)|*.mep"),
         wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (openDialog.ShowModal() == wxID_CANCEL)

@@ -66,6 +66,9 @@ enum TOOLID : int
 
     MENU_PLAYSOUND,
     MENU_STOPSOUND,
+
+    MENU_ADDPROPERTY,
+    MENU_ADDCOMPONENT,
 };
 
 enum NODEID : int

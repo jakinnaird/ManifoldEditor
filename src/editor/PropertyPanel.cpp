@@ -89,8 +89,10 @@ void PropertyPanel::Refresh(void)
 
 		m_GeneralProperties = new wxPropertyCategory(_("General"));
 		m_CustomProperties = new wxPropertyCategory(_("Custom"));
+		m_Components = new wxPropertyCategory(_("Components"));
 		m_Properties->Append(m_GeneralProperties);
 		m_Properties->Append(m_CustomProperties);
+		m_Properties->Append(m_Components);
 
 		// name
 		wxStringProperty* name = new wxStringProperty(_("Name"));
@@ -465,6 +467,49 @@ void PropertyPanel::Refresh(void)
 				}
 			}
 		}
+	
+		// add the components
+		const irr::scene::ISceneNodeAnimatorList animators = m_SceneNode->getAnimators();
+		for (irr::scene::ISceneNodeAnimatorList::ConstIterator i = animators.begin();
+			i != animators.end(); ++i)
+		{
+			wxPGProperty* component = nullptr;
+
+			irr::io::IAttributes* animAttribs = m_Map->GetSceneMgr()->getFileSystem()->createEmptyAttributes();
+			irr::scene::ESCENE_NODE_ANIMATOR_TYPE type = (*i)->getType();
+			irr::u32 factoryCount = m_Map->GetSceneMgr()->getRegisteredSceneNodeAnimatorFactoryCount();
+			for (irr::u32 j = 0; j < factoryCount; ++j)
+			{
+				irr::scene::ISceneNodeAnimatorFactory* factory = m_Map->GetSceneMgr()->getSceneNodeAnimatorFactory(j);
+				const irr::c8* name = factory->getCreateableSceneNodeAnimatorTypeName(type);
+				if (name)
+				{
+					(*i)->serializeAttributes(animAttribs, &opts);
+					// if (!animAttribs->existsAttribute("Type"))
+					// 	animAttribs->setAttribute("Type", name);
+
+					component = new wxPropertyCategory(name);
+					break;
+				}
+			}
+
+			if (component)
+			{
+				m_Properties->AppendIn(m_Components, component);
+
+				for (irr::u32 j = 0; j < animAttribs->getAttributeCount(); ++j)
+				{
+					AddAttribute(component, animAttribs->getAttributeType(j),
+						animAttribs->getAttributeName(j),
+						animAttribs->getAttributeAsString(j).c_str());
+				}
+
+				m_Properties->Collapse(component);
+			}
+
+			animAttribs->drop();
+		}
+
 	}
 	else // refresh the children
 	{
@@ -633,8 +678,100 @@ void PropertyPanel::OnValueChanged(wxPropertyGridEvent& event)
 	else
 	{
 		wxPGProperty* property = event.GetProperty();
-		PropertyClientData* clientData = static_cast<PropertyClientData*>(property->GetClientData());
-		m_Commands.Submit(new UpdateActorAttributeCommand(clientData->m_Type,
-			m_SceneNode->getName(), m_Map, this, property->GetName(), event.GetValue()));
+		if (property->GetParent() == m_CustomProperties)
+		{
+			PropertyClientData* clientData = static_cast<PropertyClientData*>(property->GetClientData());
+			m_Commands.Submit(new UpdateActorAttributeCommand(clientData->m_Type,
+				m_SceneNode->getName(), m_Map, this, property->GetName(), event.GetValue()));
+		}
+		else if (property->GetParent() && property->GetParent()->GetParent() == m_Components)
+		{
+			PropertyClientData* clientData = static_cast<PropertyClientData*>(property->GetClientData());
+
+			// look up the component type
+			irr::scene::ESCENE_NODE_ANIMATOR_TYPE type = irr::scene::ESNAT_UNKNOWN;
+			const irr::scene::ISceneNodeAnimatorList animators = m_SceneNode->getAnimators();
+			for (irr::scene::ISceneNodeAnimatorList::ConstIterator i = animators.begin();
+				i != animators.end(); ++i)
+			{
+				irr::u32 factoryCount = m_Map->GetSceneMgr()->getRegisteredSceneNodeAnimatorFactoryCount();
+				for (irr::u32 j = 0; j < factoryCount; ++j)
+				{
+					irr::scene::ISceneNodeAnimatorFactory* factory = m_Map->GetSceneMgr()->getSceneNodeAnimatorFactory(j);
+					if (factory->getCreateableSceneNodeAnimatorTypeName((*i)->getType()) == property->GetParent()->GetName())
+					{
+						type = (*i)->getType();
+						break;
+					}
+				}
+			}
+
+			m_Commands.Submit(new UpdateComponentAttributeCommand(clientData->m_Type,
+				m_SceneNode->getName(), m_Map, this, type, property->GetName(), event.GetValue()));
+		}
+	}
+}
+
+void PropertyPanel::AddAttribute(wxPGProperty* parent, const irr::io::E_ATTRIBUTE_TYPE& type, 
+	const wxString& name, const wxString& value)
+{
+	int index = parent->GetChildCount();
+	switch (type)
+	{
+	case irr::io::EAT_INT:
+	{
+		wxIntProperty* property = new wxIntProperty(name);
+		property->SetValueFromString(value);
+		property->SetClientData(new PropertyClientData(type));
+		m_Properties->Insert(parent, index, property);
+	} break;
+	case irr::io::EAT_FLOAT:
+	{
+		wxFloatProperty* property = new wxFloatProperty(name);
+		property->SetValueFromString(value);
+		property->SetClientData(new PropertyClientData(type));
+		m_Properties->Insert(parent, index, property);
+	} break;
+	case irr::io::EAT_STRING:
+	{
+		wxStringProperty* property = new wxStringProperty(name, wxPG_LABEL, value);
+		property->SetClientData(new PropertyClientData(type));
+		m_Properties->Insert(parent, index, property);
+	} break;
+	case irr::io::EAT_VECTOR3D:
+	{
+		irr::core::vector3df vec = valueToVec3(value);
+
+		wxPGProperty* property = m_Properties->Insert(parent, index, 
+			new wxStringProperty(name, wxPG_LABEL, "<composed>"));
+		PropertyClientData* clientData = new PropertyClientData(type);
+		property->SetClientData(clientData);
+		wxFloatProperty* x = new wxFloatProperty(_("x"), wxPG_LABEL, vec.X);
+		x->SetClientData(clientData);
+		wxFloatProperty* y = new wxFloatProperty(_("y"), wxPG_LABEL, vec.Y);
+		y->SetClientData(clientData);
+		wxFloatProperty* z = new wxFloatProperty(_("z"), wxPG_LABEL, vec.Z);
+		z->SetClientData(clientData);
+		m_Properties->AppendIn(property, x);
+		m_Properties->AppendIn(property, y);
+		m_Properties->AppendIn(property, z);
+		m_Properties->Collapse(property);
+	} break;
+	case irr::io::EAT_VECTOR2D:
+	{
+		irr::core::vector2df vec = valueToVec2(value);
+
+		wxPGProperty* property = m_Properties->Insert(parent, index, 
+			new wxStringProperty(name, wxPG_LABEL, "<composed>"));
+		PropertyClientData* clientData = new PropertyClientData(type);
+		property->SetClientData(clientData);
+		wxFloatProperty* x = new wxFloatProperty(_("x"), wxPG_LABEL, vec.X);
+		x->SetClientData(clientData);
+		wxFloatProperty* y = new wxFloatProperty(_("y"), wxPG_LABEL, vec.Y);
+		y->SetClientData(clientData);
+		m_Properties->AppendIn(property, x);
+		m_Properties->AppendIn(property, y);
+		m_Properties->Collapse(property);
+	} break;
 	}
 }

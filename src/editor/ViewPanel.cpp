@@ -7,6 +7,7 @@
 #include "BrowserWindow.hpp"
 #include "Commands.hpp"
 #include "Common.hpp"
+#include "Component.hpp"
 #include "FSHandler.hpp"
 #include "MainWindow.hpp"
 #include "MapEditor.hpp"
@@ -379,6 +380,11 @@ void ViewPanel::OnResize(wxSizeEvent& event)
 		irr::scene::ISceneNodeFactory* factory = new SceneNodeFactory(m_RenderDevice->getSceneManager());
 		m_RenderDevice->getSceneManager()->registerSceneNodeFactory(factory);
 		factory->drop();
+
+		// register the component factory
+		irr::scene::ISceneNodeAnimatorFactory* animatorFactory = new ComponentFactory(m_RenderDevice->getSceneManager());
+		m_RenderDevice->getSceneManager()->registerSceneNodeAnimatorFactory(animatorFactory);
+		animatorFactory->drop();
 
 		// create default font
 		irr::io::path defaultFontUri("editor.mpk:fonts/Gen-Light5.ttf");
