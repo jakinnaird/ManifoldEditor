@@ -8,10 +8,20 @@ Open Visual Studio msw/ManifoldEditor.sln, select Debug or Release and build. On
 
 ### Linux
 
-Install the required development packages
+Install the required development packages. 
 
 ```
-sudo apt install libgl-dev libxxf86vm-dev libwxgtk3.0-gtk3-dev libgtk-3-dev libfreetype-dev pkg-config doxygen
+sudo apt install libgl-dev libxxf86vm-dev libgtk-3-dev libfreetype-dev pkg-config doxygen
+```
+
+wxWidgets >=3.2 is required 
+
+On Ubuntu 22.04 add the [CodeLite repo](https://docs.codelite.org/wxWidgets/repo320/)
+
+```
+sudo apt-key adv --fetch-keys https://repos.codelite.org/CodeLite.asc
+sudo apt-add-repository 'deb https://repos.codelite.org/wx3.2.0/ubuntu/ jammy universe'
+sudo apt install libwxbase3.2-0-unofficial libwxbase3.2unofficial-dev libwxgtk3.2-0-unofficial libwxgtk3.2unofficial-dev wx3.2-headers wx-common
 ```
 
 Create the needed libraries and compile the editor

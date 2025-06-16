@@ -1,0 +1,25 @@
+var classProjectEditor =
+[
+    [ "ProjectEditor", "classProjectEditor.html#ac4ab2a7dec2cbc58439d0613bdf8a437", null ],
+    [ "~ProjectEditor", "classProjectEditor.html#ad04b342cee407d41cd7bc067cb1c7cfe", null ],
+    [ "GetFileName", "classProjectEditor.html#a840812801f13ef142e77415a9640abef", null ],
+    [ "HasChanged", "classProjectEditor.html#ab77709015d8935a1d768e23f2ed9e426", null ],
+    [ "Load", "classProjectEditor.html#aef1511e8bf6bf8c92f272f1c1cc08e57", null ],
+    [ "OnBuildProject", "classProjectEditor.html#ab56412787a853342ddc6f084edeb2c41", null ],
+    [ "OnCopy", "classProjectEditor.html#a94cf051497c397624525362eb25069f6", null ],
+    [ "OnCut", "classProjectEditor.html#af3be7b0e923f96b83cb844379bb4f0b7", null ],
+    [ "OnDelete", "classProjectEditor.html#a88d4f5d5293d7c93a149942494ab9947", null ],
+    [ "OnPageClose", "classProjectEditor.html#afe1e27e765301525213b9de6905e9fac", null ],
+    [ "OnPaste", "classProjectEditor.html#a31e18c348863e40e0307e59286b97550", null ],
+    [ "OnRedo", "classProjectEditor.html#aca1acd741dbd406ba8d3f4f1043ae4a5", null ],
+    [ "OnSave", "classProjectEditor.html#ade0a778d6bf1c1ea8cfd9e3917e42d87", null ],
+    [ "OnSaveAs", "classProjectEditor.html#a2d8d3edc025b3668345fddd6adf5dc69", null ],
+    [ "OnToolAction", "classProjectEditor.html#a2e1d97aa8dbb6ca1c4ff96edd17281a7", null ],
+    [ "OnUndo", "classProjectEditor.html#a9a34eb7b60780711e9c381d5a4da37a4", null ],
+    [ "OpenFile", "classProjectEditor.html#a9028df08232126b478903693352a82e9", null ],
+    [ "m_AuiMgr", "classProjectEditor.html#aea9e1739e3b2e094a666214c96ef046f", null ],
+    [ "m_Explorer", "classProjectEditor.html#a90b1070b7a15b9c33718115664b8f02e", null ],
+    [ "m_FileName", "classProjectEditor.html#ae09317d9b751bcd5edfda6c0b012dcca", null ],
+    [ "m_Pages", "classProjectEditor.html#a3e0e686f47096b18f8a115b0c8a9ebd7", null ],
+    [ "m_RenderDevice", "classProjectEditor.html#a27103e0b54368576b68a1922936c6cdc", null ]
+];

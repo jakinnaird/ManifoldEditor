@@ -15,8 +15,8 @@ find_package(Doxygen REQUIRED)
 
 # Add a custom target for generating documentation
 add_custom_target(doc ALL
-    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Doxyfile
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/../../Doxyfile
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/../..
     COMMENT "Generating documentation with Doxygen"
     VERBATIM
 )
@@ -29,6 +29,7 @@ add_executable(ManifoldEditor
     ../../src/editor/BrowserWindow.cpp
     ../../src/editor/CGridSceneNode.cpp
     ../../src/editor/Commands.cpp
+    ../../src/editor/Component.cpp
     ../../src/editor/Convert.cpp
     ../../src/editor/CSceneNodeAnimatorCameraOrtho.cpp
     ../../src/editor/Editor.cpp
@@ -55,6 +56,7 @@ add_executable(ManifoldEditor
     ../../src/extend/SceneNodeFactory.cpp
     ../../thirdparty/ktkr3d/CGUITTFont.cpp)
 
+set(wxWidgets_USE_UNICODE)
 include(${wxWidgets_USE_FILE})
 
 target_include_directories(ManifoldEditor PRIVATE
@@ -67,7 +69,7 @@ target_include_directories(ManifoldEditor PRIVATE
     ../../thirdparty/miniaudio-0.11.22)
 
 target_compile_options(ManifoldEditor PRIVATE ${GTK3_CFLAGS_OTHER} -fPIE)
-SET(CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath='$ORIGIN'")
+set(CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath='$ORIGIN'")
 
 target_link_directories(ManifoldEditor PUBLIC ../../bin)
 target_link_libraries(ManifoldEditor ${wxWidgets_LIBRARIES} ${FREETYPE_LIBRARIES} ${GTK3_LIBRARIES} 
