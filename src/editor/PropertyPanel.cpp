@@ -495,7 +495,7 @@ void PropertyPanel::Refresh(void)
 
 			if (component)
 			{
-				m_Properties->AppendIn(m_Components, component);
+				m_Properties->Insert(m_Components, m_Components->GetChildCount(), component);
 
 				for (irr::u32 j = 0; j < animAttribs->getAttributeCount(); ++j)
 				{
@@ -678,14 +678,15 @@ void PropertyPanel::OnValueChanged(wxPropertyGridEvent& event)
 	else
 	{
 		wxPGProperty* property = event.GetProperty();
+
 		if (property->GetParent() == m_CustomProperties)
 		{
 			PropertyClientData* clientData = static_cast<PropertyClientData*>(property->GetClientData());
 			m_Commands.Submit(new UpdateActorAttributeCommand(clientData->m_Type,
 				m_SceneNode->getName(), m_Map, this, property->GetName(), event.GetValue()));
 		}
-		else if (property->GetParent() && property->GetParent()->GetParent() == m_Components)
-		{
+		else if (property->GetParent() && property->GetParent()->GetParent()->GetParent() == m_Components)
+		{			
 			PropertyClientData* clientData = static_cast<PropertyClientData*>(property->GetClientData());
 
 			// look up the component type
@@ -698,7 +699,7 @@ void PropertyPanel::OnValueChanged(wxPropertyGridEvent& event)
 				for (irr::u32 j = 0; j < factoryCount; ++j)
 				{
 					irr::scene::ISceneNodeAnimatorFactory* factory = m_Map->GetSceneMgr()->getSceneNodeAnimatorFactory(j);
-					if (factory->getCreateableSceneNodeAnimatorTypeName((*i)->getType()) == property->GetParent()->GetName())
+					if (factory->getCreateableSceneNodeAnimatorTypeName((*i)->getType()) == property->GetParent()->GetParent()->GetName())
 					{
 						type = (*i)->getType();
 						break;
@@ -706,8 +707,23 @@ void PropertyPanel::OnValueChanged(wxPropertyGridEvent& event)
 				}
 			}
 
+			wxString name = property->GetName();
+			wxString value = event.GetValue().GetString();
+			switch (clientData->m_Type)
+			{
+			case irr::io::EAT_VECTOR3D:
+			case irr::io::EAT_VECTOR2D:
+			{
+				// we need to get the composed value from the parent property
+				wxPGProperty* parent = property->GetParent();
+				wxStringProperty* parentValue = dynamic_cast<wxStringProperty*>(parent);
+				value = parentValue->GetValue().GetString();
+				name = parentValue->GetName();
+			} break;
+			}
+
 			m_Commands.Submit(new UpdateComponentAttributeCommand(clientData->m_Type,
-				m_SceneNode->getName(), m_Map, this, type, property->GetName(), event.GetValue()));
+				m_SceneNode->getName(), m_Map, this, type, name, value));
 		}
 	}
 }

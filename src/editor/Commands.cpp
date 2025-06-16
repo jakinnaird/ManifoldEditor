@@ -409,10 +409,14 @@ bool AddNodeCommand::Do(void)
 			for (std::map<irr::core::stringc, irr::io::IAttributes*>::iterator it = components.begin();
 				it != components.end(); ++it)
 			{
-				irr::scene::ISceneNodeAnimator* anim = new Component(
-					ComponentFactory::HashComponentName(it->first.c_str()), it->second);
+				// irr::scene::ISceneNodeAnimator* anim = new Component(
+				// 	ComponentFactory::HashComponentName(it->first.c_str()), it->second);
+				irr::scene::ISceneNodeAnimator* anim = m_SceneMgr->createSceneNodeAnimator(it->first.c_str());
 				if (anim)
+				{
+					anim->deserializeAttributes(it->second);
 					model->addAnimator(anim);
+				}
 
 				it->second->drop();
 			}
@@ -584,6 +588,7 @@ bool AddNodeCommand::Undo(void)
 	case TOOL_LIGHT:
 	case TOOL_PLAYERSTART:
 	case TOOL_PATHNODE:
+	case TOOL_ACTOR:
 		m_ExplorerPanel->RemoveActor(m_Name);
 		break;
 	default:
@@ -1707,25 +1712,34 @@ bool UpdateComponentAttributeCommand::Do(void)
 		{
 			(*i)->serializeAttributes(attribs);
 
-			wxString oldValue = attribs->getAttributeAsString(m_Attribute.c_str().AsChar()).c_str();
+			wxString oldValue;
 
 			switch (m_Type)
 			{
 			case irr::io::EAT_INT:
+				oldValue = wxString::Format("%d", attribs->getAttributeAsInt(m_Attribute.c_str().AsChar()));
 				attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToInt(m_Value));
 				break;
 			case irr::io::EAT_FLOAT:
+				oldValue = wxString::Format("%g", attribs->getAttributeAsFloat(m_Attribute.c_str().AsChar()));
 				attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToFloat(m_Value));
 				break;
 			case irr::io::EAT_STRING:
+				oldValue = wxString::Format("%s", attribs->getAttributeAsString(m_Attribute.c_str().AsChar()).c_str());
 				attribs->setAttribute(m_Attribute.c_str().AsChar(), m_Value.c_str().AsChar());
 				break;
 			case irr::io::EAT_VECTOR3D:
+			{
+				irr::core::vector3df vec = attribs->getAttributeAsVector3d(m_Attribute.c_str().AsChar());
+				oldValue = wxString::Format("%g; %g; %g", vec.X, vec.Y, vec.Z);
 				attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToVec3(m_Value));
-				break;
+			} break;
 			case irr::io::EAT_VECTOR2D:
+			{
+				irr::core::vector2df vec = attribs->getAttributeAsVector2d(m_Attribute.c_str().AsChar());
+				oldValue = wxString::Format("%g; %g", vec.X, vec.Y);
 				attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToVec2(m_Value));
-				break;
+			} break;
 			}
 
 			// write the attribute back to the animator
