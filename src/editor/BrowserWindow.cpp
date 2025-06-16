@@ -53,6 +53,7 @@ BrowserWindow::BrowserWindow(wxWindow* parent)
 	this->SetSizerAndFit(sizer);
 
 	Bind(wxEVT_CLOSE_WINDOW, &BrowserWindow::OnCloseEvent, this);
+	Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, &BrowserWindow::OnPageChanged, this);
 
 	SwitchTo(PAGE_ACTORS);
 }
@@ -147,6 +148,11 @@ void BrowserWindow::OnCloseEvent(wxCloseEvent& event)
 		this->Show(false); // hide ourselves
 		event.Veto();
 	}
+}
+
+void BrowserWindow::OnPageChanged(wxNotebookEvent& event)
+{
+	SwitchTo(event.GetSelection());
 }
 
 #define START_X		5

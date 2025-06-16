@@ -153,6 +153,12 @@ private:
 	 * @param event The close event
 	 */
 	void OnCloseEvent(wxCloseEvent& event);
+
+	/**
+	 * @brief Handle page change events
+	 * @param event The page change event
+	 */
+	void OnPageChanged(wxNotebookEvent& event);
 };
 
 class TextureBrowser : public wxPanel
