@@ -3,6 +3,7 @@
 .vscode/
 
 *.exe
+!doxygen.exe
 *.dll
 *.exp
 *.lib
