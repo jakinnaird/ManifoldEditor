@@ -169,6 +169,9 @@ TextureBrowser::TextureBrowser(wxWindow* parent)
 		_("Add new texture"));
 	tools->AddTool(wxID_OPEN, _("Open"), wxArtProvider::GetBitmap(wxART_FILE_OPEN),
 		_("Open package"));
+	tools->AddSeparator();
+	tools->AddTool(wxID_REFRESH, _("Refresh"), wxArtProvider::GetBitmap(wxART_REFRESH),
+		_("Refresh"));
 	tools->Realize();
 
 	// create the widgets
@@ -193,16 +196,17 @@ TextureBrowser::TextureBrowser(wxWindow* parent)
 	// configure the event handling
 	Bind(wxEVT_MENU, &TextureBrowser::OnToolAdd, this, wxID_NEW);
 	Bind(wxEVT_MENU, &TextureBrowser::OnToolOpen, this, wxID_OPEN);
+	Bind(wxEVT_MENU, &TextureBrowser::OnToolRefresh, this, wxID_REFRESH);
 	m_Preview->Bind(wxEVT_PAINT, &TextureBrowser::OnPaint, this);
 	m_Preview->Bind(wxEVT_LEFT_UP, &TextureBrowser::OnMouse, this);
 }
 
 TextureBrowser::~TextureBrowser(void)
 {
-	for (textures_t::iterator tex = m_Textures.begin();
-		tex != m_Textures.end(); ++tex)
+	for (texturemap_t::iterator i = m_TextureMap.begin();
+		i != m_TextureMap.end(); ++i)
 	{
-		(*tex).image->drop();
+		(*i).second.image->drop();
 	}
 }
 
@@ -291,9 +295,10 @@ bool TextureBrowser::LoadPackage(const wxString& path, bool preload)
 void TextureBrowser::ResizePreview(void)
 {
 	wxSize size(600, 10);
-	for (textures_t::iterator i = m_Textures.begin(); i != m_Textures.end(); ++i)
+	for (texturemap_t::iterator i = m_TextureMap.begin(); 
+		i != m_TextureMap.end(); ++i)
 	{
-		size.y += i->clickMap.height + SPACE_Y;
+		size.y += (*i).second.clickMap.height + SPACE_Y;
 	}
 
 	m_Preview->SetVirtualSize(size);
@@ -371,36 +376,143 @@ void TextureBrowser::OnToolOpen(wxCommandEvent& event)
 	}
 }
 
+void TextureBrowser::OnToolRefresh(wxCommandEvent& event)
+{
+	if (m_RenderDevice == nullptr)
+		return;
+
+	// start by clearing the texture map
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		wxString path = *i;
+		wxFileInputStream inStream(path);
+		if (inStream.IsOk())
+		{
+			wxZipInputStream zipStream(inStream);
+			if (!zipStream.IsOk())
+			{
+				wxLogWarning(_("Unsupported archive: %s"), path);
+				continue;
+			}
+
+			wxZipEntry* entry = zipStream.GetNextEntry();
+			while (entry)
+			{
+				wxString texPath(entry->GetName());
+
+				// support archives made on any platform
+				if (texPath.StartsWith(wxT("textures/")) ||
+					texPath.StartsWith(wxT("textures\\")))
+				{
+					// build the image path
+					wxString imagePath(path);
+					imagePath.append(wxT(":"));
+					imagePath.append(texPath);
+
+					// this ensures the image is refreshed if it has changed
+					texturemap_t::iterator ti = m_TextureMap.find(imagePath);
+					if (ti != m_TextureMap.end())
+					{
+						(*ti).second.image->drop();
+						m_TextureMap.erase(ti);
+					}
+				}
+
+				entry->UnRef();
+				entry = zipStream.GetNextEntry();
+			}
+		}
+	}
+
+	ResizePreview();
+	m_Preview->Refresh();
+
+	// now load all the images from the packages
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		wxString path = *i;
+		wxFileInputStream inStream(path);
+		if (inStream.IsOk())
+		{
+			wxZipInputStream zipStream(inStream);
+			if (!zipStream.IsOk())
+			{
+				wxLogWarning(_("Unsupported archive: %s"), path);
+				continue;
+			}
+
+			wxZipEntry* entry = zipStream.GetNextEntry();
+			while (entry)
+			{
+				wxString texPath(entry->GetName());
+
+				// support archives made on any platform
+				if (texPath.StartsWith(wxT("textures/")) ||
+					texPath.StartsWith(wxT("textures\\")))
+				{
+					// build the image path
+					wxString imagePath(path);
+					imagePath.append(wxT(":"));
+					imagePath.append(texPath);
+
+					// now we can load the image
+					irr::io::path filename(imagePath.c_str().AsChar());
+					irr::video::IImage* image = m_RenderDevice->getVideoDriver()
+						->createImageFromFile(filename);
+					if (image)
+					{
+						wxSize size(image->getDimension().Width,
+							image->getDimension().Height);
+						wxImage img(size, (unsigned char*)image->lock(), true);
+						image->unlock();
+
+						if (img.IsOk())
+							AddImage(imagePath, img, image);
+					}
+				}
+
+				entry->UnRef();
+				entry = zipStream.GetNextEntry();
+			}
+		}
+	}
+
+	ResizePreview();
+	m_Preview->Refresh();
+}
+
 void TextureBrowser::OnPaint(wxPaintEvent& event)
 {
 	wxPaintDC dc(m_Preview);
 	m_Preview->DoPrepareDC(dc);
 
-	for (textures_t::iterator tex = m_Textures.begin(); tex != m_Textures.end(); ++tex)
+	for (texturemap_t::iterator tex = m_TextureMap.begin(); tex != m_TextureMap.end(); ++tex)
 	{
-		if (tex->path == m_Selected)
+		if ((*tex).second.path == m_Selected)
 		{
 			// draw the selection rectangle
-			wxSize sz = tex->bitmap.GetSize();
+			wxSize sz = (*tex).second.bitmap.GetSize();
 			sz.x += 4;
 			sz.y += 4;
 
 			dc.SetBrush(*wxWHITE_BRUSH);
-			dc.DrawRectangle(wxPoint(START_X - 2, tex->clickMap.y - 2), sz);
+			dc.DrawRectangle(wxPoint(START_X - 2, (*tex).second.clickMap.y - 2), sz);
 		}
 
-		dc.DrawBitmap(tex->bitmap, START_X, tex->clickMap.y, true);
+		dc.DrawBitmap((*tex).second.bitmap, START_X, (*tex).second.clickMap.y, true);
 	}
 }
 
 void TextureBrowser::OnMouse(wxMouseEvent& event)
 {
 	wxPoint pos = m_Preview->CalcUnscrolledPosition(event.GetPosition());
-	for (textures_t::iterator i = m_Textures.begin(); i != m_Textures.end(); ++i)
+	for (texturemap_t::iterator i = m_TextureMap.begin(); i != m_TextureMap.end(); ++i)
 	{
-		if (i->clickMap.Contains(pos))
+		if ((*i).second.clickMap.Contains(pos))
 		{
-			m_Selected = i->path;
+			m_Selected = (*i).second.path;
 			m_StatusBar->SetStatusText(m_Selected);
 			m_Preview->Refresh();
 		}
@@ -426,26 +538,25 @@ void TextureBrowser::AddImage(const wxString& path, wxImage& image,
 	entry.image = irrImage;
 
 	// calculate the click map
-	textures_t::reverse_iterator t = m_Textures.rbegin();
-	if (t != m_Textures.rend())
+	texturemap_t::reverse_iterator t = m_TextureMap.rbegin();
+	if (t != m_TextureMap.rend())
 	{
-		entry.clickMap.x = t->clickMap.x;
-		entry.clickMap.y = t->clickMap.y + t->clickMap.height + SPACE_Y;
+		entry.clickMap.x = (*t).second.clickMap.x;
+		entry.clickMap.y = (*t).second.clickMap.y + (*t).second.clickMap.height + SPACE_Y;
 		entry.clickMap.width = image.GetWidth();
 		entry.clickMap.height = image.GetHeight();
 	}
 	else
 		entry.clickMap = wxRect(wxPoint(START_X, START_Y), image.GetSize());
 
-	m_Textures.push_back(entry);
-	m_TextureMap.emplace(path, std::prev(m_Textures.end()));
+	m_TextureMap.emplace(path, entry);
 }
 
 void TextureBrowser::ScrollTo(const wxString& image)
 {
 	texturemap_t::iterator i = m_TextureMap.find(m_Selected);
 	if (i != m_TextureMap.end())
-		m_Preview->Scroll(wxPoint(0, i->second->clickMap.y));
+		m_Preview->Scroll(wxPoint(0, (*i).second.clickMap.y));
 }
 
 class PropertyType : public wxClientData
@@ -885,6 +996,9 @@ ActorBrowser::ActorBrowser(wxWindow* parent)
 	tools->AddSeparator();
 	tools->AddTool(wxID_SAVE, _("Save"), wxArtProvider::GetBitmap(wxART_FILE_SAVE),
 		_("Save actor definition"));
+	tools->AddSeparator();
+	tools->AddTool(wxID_REFRESH, _("Refresh"), wxArtProvider::GetBitmap(wxART_REFRESH),
+		_("Refresh"));
 	tools->Realize();
 
 	m_Tree = new wxTreeCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
@@ -900,6 +1014,7 @@ ActorBrowser::ActorBrowser(wxWindow* parent)
 	Bind(wxEVT_MENU, &ActorBrowser::OnToolAdd, this, wxID_NEW);
 	Bind(wxEVT_MENU, &ActorBrowser::OnToolOpen, this, wxID_OPEN);
 	Bind(wxEVT_MENU, &ActorBrowser::OnToolSave, this, wxID_SAVE);
+	Bind(wxEVT_MENU, &ActorBrowser::OnToolRefresh, this, wxID_REFRESH);
 	m_Tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &ActorBrowser::OnItemActivate, this);
 	m_Tree->Bind(wxEVT_TREE_SEL_CHANGED, &ActorBrowser::OnItemSelected, this);
 
@@ -989,6 +1104,8 @@ bool ActorBrowser::LoadPackage(const wxString& path, bool preload)
 					{
 						AddActor(doc, path, true);
 					}
+					else
+						wxLogWarning(_("Invalid actor definition file: %s"), entryPath.GetFullPath());
 				}
 			}
 			else if (entryPath.GetExt().CmpNoCase(wxT("component")) == 0)
@@ -1012,6 +1129,8 @@ bool ActorBrowser::LoadPackage(const wxString& path, bool preload)
 					{
 						ComponentFactory::RegisterComponent(doc.GetRoot()->GetAttribute(wxT("name")), doc);
 					}
+					else
+						wxLogWarning(_("Invalid component definition file: %s"), entryPath.GetFullPath());
 				}
 			}
 
@@ -1036,10 +1155,12 @@ bool ActorBrowser::LoadDefinition(const wxString& path, bool preload)
 	}
 
 	wxFileName fn(path);
-
 	wxXmlDocument doc;
 	if (!doc.Load(fn.GetFullPath()))
+	{
+		wxLogWarning(_("Failed to load definition file: %s"), fn.GetFullPath());
 		return false;
+	}
 
 	if (fn.GetExt().CmpNoCase(wxT("actor")) == 0 &&
 		doc.GetRoot()->GetName().CompareTo(wxT("actor"), wxString::ignoreCase) == 0)
@@ -1133,6 +1254,24 @@ void ActorBrowser::OnToolSave(wxCommandEvent& event)
 	}
 }
 
+void ActorBrowser::OnToolRefresh(wxCommandEvent& event)
+{
+	m_Tree->DeleteChildren(m_Root);
+	m_ItemPaths.clear();
+
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		LoadPackage(*i, true);
+	}
+
+	for (BrowserWindow::definitionlist_t::iterator i = BrowserWindow::ms_Definitions.begin();
+		i != BrowserWindow::ms_Definitions.end(); ++i)
+	{
+		LoadDefinition(*i, true);
+	}
+}
+
 void ActorBrowser::OnItemActivate(wxTreeEvent& event)
 {
 	ActorItemData* data = dynamic_cast<ActorItemData*>(
@@ -1213,6 +1352,7 @@ void ActorBrowser::AddActor(const wxXmlDocument& definition, const wxString& sou
 			m_Tree->EnsureVisible(actorId);
 
 			m_ItemPaths[actorId] = sourceFile;
+			BrowserWindow::ms_Definitions.push_back(sourceFile);
 		}
 	}
 }
@@ -1267,6 +1407,10 @@ SoundBrowser::SoundBrowser(wxWindow* parent)
 	stopTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/stop64.png", wxBITMAP_TYPE_PNG));
 	tools->AddTool(MENU_STOPSOUND, _("Stop sound"), wxBitmapBundle::FromBitmaps(stopTool),
 		_("Stop playing sound"));
+	
+	tools->AddSeparator();
+	tools->AddTool(wxID_REFRESH, _("Refresh"), wxArtProvider::GetBitmap(wxART_REFRESH),
+		_("Refresh"));
 	tools->Realize();
 
 	m_List = new wxListView(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
@@ -1286,6 +1430,7 @@ SoundBrowser::SoundBrowser(wxWindow* parent)
 	Bind(wxEVT_MENU, &SoundBrowser::OnToolOpen, this, wxID_OPEN);
 	Bind(wxEVT_MENU, &SoundBrowser::OnToolPlay, this, MENU_PLAYSOUND);
 	Bind(wxEVT_MENU, &SoundBrowser::OnToolStop, this, MENU_STOPSOUND);
+	Bind(wxEVT_MENU, &SoundBrowser::OnToolRefresh, this, wxID_REFRESH);
 	m_List->Bind(wxEVT_LIST_ITEM_ACTIVATED, &SoundBrowser::OnItemActivate, this);
 }
 
@@ -1466,6 +1611,21 @@ void SoundBrowser::OnToolStop(wxCommandEvent& event)
 	m_AudioSystem->stopSound();
 }
 
+void SoundBrowser::OnToolRefresh(wxCommandEvent& event)
+{
+	if (m_AudioSystem == nullptr)
+		return;
+
+	m_List->DeleteAllItems();
+	m_ItemPaths.clear();
+
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		LoadPackage(*i, true);
+	}
+}
+
 void SoundBrowser::OnItemActivate(wxListEvent& event)
 {
 	long index = event.GetIndex();
@@ -1486,6 +1646,9 @@ MeshBrowser::MeshBrowser(wxWindow* parent)
 		_("Add mesh"));
 	tools->AddTool(wxID_OPEN, _("Open"), wxArtProvider::GetBitmap(wxART_FILE_OPEN),
 		_("Open package"));
+	tools->AddSeparator();
+	tools->AddTool(wxID_REFRESH, _("Refresh"), wxArtProvider::GetBitmap(wxART_REFRESH),
+		_("Refresh"));
 	tools->Realize();
 
 	m_List = new wxListView(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
@@ -1500,6 +1663,7 @@ MeshBrowser::MeshBrowser(wxWindow* parent)
 
 	Bind(wxEVT_MENU, &MeshBrowser::OnToolAdd, this, wxID_NEW);
 	Bind(wxEVT_MENU, &MeshBrowser::OnToolOpen, this, wxID_OPEN);
+	Bind(wxEVT_MENU, &MeshBrowser::OnToolRefresh, this, wxID_REFRESH);
 	m_List->Bind(wxEVT_LIST_ITEM_SELECTED, &MeshBrowser::OnItemSelected, this);
 
 	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
@@ -1541,6 +1705,9 @@ bool MeshBrowser::LoadPackage(const wxString& path, bool preload)
 			wxLogWarning(_("Unsupported archive: %s"), _path.GetFullPath());
 			return false;
 		}
+
+		if (!preload)
+			BrowserWindow::ms_Packages.push_back(path);
 
 		wxZipEntry* entry = zipStream.GetNextEntry();
 		while (entry)
@@ -1590,7 +1757,10 @@ bool MeshBrowser::LoadDefinition(const wxString& path, bool preload)
 	wxFileName fn(path);
 	wxXmlDocument doc;
 	if (!doc.Load(fn.GetFullPath()))
+	{
+		wxLogWarning(_("Failed to load definition file: %s"), fn.GetFullPath());
 		return false;
+	}
 
 	if (fn.GetExt().CmpNoCase(wxT("prefab")) == 0 &&
 		doc.GetRoot()->GetName().CompareTo(wxT("prefab"), wxString::ignoreCase) == 0)
@@ -1662,6 +1832,24 @@ void MeshBrowser::OnToolOpen(wxCommandEvent& event)
 		.Background(*wxWHITE));
 
 	LoadPackage(openDialog.GetPath(), false);	
+}
+
+void MeshBrowser::OnToolRefresh(wxCommandEvent& event)
+{
+	m_List->DeleteAllItems();
+	m_ItemDefinitions.clear();
+
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		LoadPackage(*i, true);
+	}
+
+	for (BrowserWindow::definitionlist_t::iterator i = BrowserWindow::ms_Definitions.begin();
+		i != BrowserWindow::ms_Definitions.end(); ++i)
+	{
+		LoadDefinition(*i, true);
+	}
 }
 
 void MeshBrowser::OnItemSelected(wxListEvent& event)

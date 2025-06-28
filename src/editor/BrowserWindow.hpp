@@ -173,10 +173,7 @@ private:
 	};
 
 private:
-	typedef std::vector<TextureEntry> textures_t;
-	textures_t m_Textures;
-
-	typedef std::map<wxString, textures_t::iterator> texturemap_t;
+	typedef std::map<wxString, TextureEntry> texturemap_t;
 	texturemap_t m_TextureMap;
 
 private:
@@ -202,6 +199,8 @@ private:
 	
 	void OnToolAdd(wxCommandEvent& event);
 	void OnToolOpen(wxCommandEvent& event);
+	void OnToolRefresh(wxCommandEvent& event);
+
 	void OnPaint(wxPaintEvent& event);
 	void OnMouse(wxMouseEvent& event);
 	void AddImage(const wxString& path, wxImage& image,
@@ -236,6 +235,7 @@ private:
 	void OnToolAdd(wxCommandEvent& event);
 	void OnToolOpen(wxCommandEvent& event);
 	void OnToolSave(wxCommandEvent& event);
+	void OnToolRefresh(wxCommandEvent& event);
 
 	void OnItemActivate(wxTreeEvent& event);
 	void OnItemSelected(wxTreeEvent& event);
@@ -278,6 +278,7 @@ private:
 	void OnToolOpen(wxCommandEvent& event);
 	void OnToolPlay(wxCommandEvent& event);
 	void OnToolStop(wxCommandEvent& event);
+	void OnToolRefresh(wxCommandEvent& event);
 
 	void OnItemActivate(wxListEvent& event);
 };
@@ -312,6 +313,7 @@ private:
 
 	void OnToolAdd(wxCommandEvent& event);
 	void OnToolOpen(wxCommandEvent& event);
+	void OnToolRefresh(wxCommandEvent& event);
 
 	void OnItemSelected(wxListEvent& event);
 };

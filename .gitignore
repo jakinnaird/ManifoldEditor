@@ -23,6 +23,19 @@ bin/ManifoldEditor*
 *.actor
 *.component
 
+actors/
+!actors/.dummy
+components/
+!components/.dummy
+maps/
+!maps/.dummy
+models/
+!models/.dummy
+sounds/
+!sounds/.dummy
+textures/
+!textures/.dummy
+
 # specific
 msw/obj
 thirdparty/freetype-2.13.3/objs/

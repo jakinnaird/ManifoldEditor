@@ -1,5 +1,5 @@
 # Manifold Editor
-3D map editor
+3D map editor and game project management
 
 ## Building
 ### MSW
