@@ -36,6 +36,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core", "..\thirdparty\wxWid
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "_custom_build", "..\thirdparty\wxWidgets-3.2.4\build\msw\wx_custom_build.vcxproj", "{01F4CE10-2CFB-41A8-B41F-E54337868A1D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E} = {B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gl", "..\thirdparty\wxWidgets-3.2.4\build\msw\wx_gl.vcxproj", "{DA8B15EF-6750-5928-BC0E-C748213CF9B2}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -166,6 +169,18 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "freetype", "..\thirdparty\freetype-2.13.3\builds\windows\vc2010\freetype.vcxproj", "{78B079BD-9FC7-4B9E-B4A6-96DA0F00248B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ManifoldEditor", "ManifoldEditor.vcxproj", "{E1F8ED07-0D2D-4882-8D45-579302DA3B4B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{01F4CE10-2CFB-41A8-B41F-E54337868A1D} = {01F4CE10-2CFB-41A8-B41F-E54337868A1D}
+		{23E1C437-A951-5943-8639-A17F3CF2E606} = {23E1C437-A951-5943-8639-A17F3CF2E606}
+		{3E6DCA27-5FA3-53EC-BBD6-2D42294B7AE6} = {3E6DCA27-5FA3-53EC-BBD6-2D42294B7AE6}
+		{3FCC50C2-81E9-5DB2-B8D8-2129427568B1} = {3FCC50C2-81E9-5DB2-B8D8-2129427568B1}
+		{6744DAD8-9C70-574A-BFF2-9F8DDDB24A75} = {6744DAD8-9C70-574A-BFF2-9F8DDDB24A75}
+		{78B079BD-9FC7-4B9E-B4A6-96DA0F00248B} = {78B079BD-9FC7-4B9E-B4A6-96DA0F00248B}
+		{A16D3832-0F42-57CE-8F48-50E06649ADE8} = {A16D3832-0F42-57CE-8F48-50E06649ADE8}
+		{E08E042A-6C45-411B-92BE-3CC31331019F} = {E08E042A-6C45-411B-92BE-3CC31331019F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "prebuild", "prebuild.vcxproj", "{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1656,6 +1671,60 @@ Global
 		{E1F8ED07-0D2D-4882-8D45-579302DA3B4B}.Static lib - Release|x64.Build.0 = Release|x64
 		{E1F8ED07-0D2D-4882-8D45-579302DA3B4B}.Static lib - Release|x86.ActiveCfg = Release|Win32
 		{E1F8ED07-0D2D-4882-8D45-579302DA3B4B}.Static lib - Release|x86.Build.0 = Release|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Debug Static|ARM64.ActiveCfg = Debug|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Debug Static|ARM64.Build.0 = Debug|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Debug Static|x64.ActiveCfg = Debug|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Debug Static|x64.Build.0 = Debug|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Debug Static|x86.ActiveCfg = Debug|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Debug Static|x86.Build.0 = Debug|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Debug|ARM64.ActiveCfg = Debug|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Debug|ARM64.Build.0 = Debug|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Debug|x64.ActiveCfg = Debug|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Debug|x64.Build.0 = Debug|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Debug|x86.ActiveCfg = Debug|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Debug|x86.Build.0 = Debug|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release - Fast FPU|ARM64.ActiveCfg = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release - Fast FPU|ARM64.Build.0 = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release - Fast FPU|x64.ActiveCfg = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release - Fast FPU|x64.Build.0 = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release - Fast FPU|x86.ActiveCfg = Release|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release - Fast FPU|x86.Build.0 = Release|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release Static|ARM64.ActiveCfg = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release Static|ARM64.Build.0 = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release Static|x64.ActiveCfg = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release Static|x64.Build.0 = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release Static|x86.ActiveCfg = Release|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release Static|x86.Build.0 = Release|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release|ARM64.ActiveCfg = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release|ARM64.Build.0 = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release|x64.ActiveCfg = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release|x64.Build.0 = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release|x86.ActiveCfg = Release|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Release|x86.Build.0 = Release|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.SDL-Debug|ARM64.ActiveCfg = Debug|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.SDL-Debug|ARM64.Build.0 = Debug|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.SDL-Debug|x64.ActiveCfg = Debug|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.SDL-Debug|x64.Build.0 = Debug|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.SDL-Debug|x86.ActiveCfg = Debug|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.SDL-Debug|x86.Build.0 = Debug|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Debug|ARM64.ActiveCfg = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Debug|ARM64.Build.0 = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Debug|x64.ActiveCfg = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Debug|x64.Build.0 = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Debug|x86.ActiveCfg = Release|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Debug|x86.Build.0 = Release|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Release - Fast FPU|ARM64.ActiveCfg = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Release - Fast FPU|ARM64.Build.0 = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Release - Fast FPU|x64.ActiveCfg = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Release - Fast FPU|x64.Build.0 = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Release - Fast FPU|x86.ActiveCfg = Release|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Release - Fast FPU|x86.Build.0 = Release|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Release|ARM64.ActiveCfg = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Release|ARM64.Build.0 = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Release|x64.ActiveCfg = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Release|x64.Build.0 = Release|x64
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Release|x86.ActiveCfg = Release|Win32
+		{B0E3873E-CC6D-CEC8-28A9-8095AED47A9E}.Static lib - Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

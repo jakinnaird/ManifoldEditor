@@ -6,6 +6,8 @@
 
 #include "BrowserWindow.hpp"
 #include "Common.hpp"
+#include "Component.hpp"
+#include "Convert.hpp"
 #include "FSHandler.hpp"
 
 #include <wx/artprov.h>
@@ -15,6 +17,7 @@
 #include <wx/filedlg.h>
 #include <wx/filefn.h>
 #include <wx/log.h>
+#include <wx/menu.h>
 #include <wx/mimetype.h>
 #include <wx/msgdlg.h>
 #include <wx/mstream.h>
@@ -25,6 +28,7 @@
 #include <wx/zipstrm.h>
 
 BrowserWindow::packagelist_t BrowserWindow::ms_Packages;
+BrowserWindow::definitionlist_t BrowserWindow::ms_Definitions;
 
 BrowserWindow::BrowserWindow(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, wxEmptyString)
@@ -49,6 +53,7 @@ BrowserWindow::BrowserWindow(wxWindow* parent)
 	this->SetSizerAndFit(sizer);
 
 	Bind(wxEVT_CLOSE_WINDOW, &BrowserWindow::OnCloseEvent, this);
+	Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, &BrowserWindow::OnPageChanged, this);
 
 	SwitchTo(PAGE_ACTORS);
 }
@@ -107,6 +112,11 @@ const wxString& BrowserWindow::GetMesh(void)
 	return m_Meshes->GetSelection();
 }
 
+const wxString& BrowserWindow::GetMeshDefinition(void)
+{
+	return m_Meshes->GetDefinition();
+}
+
 void BrowserWindow::AddPackage(const wxString& path)
 {
 	for (packagelist_t::iterator i = ms_Packages.begin();
@@ -119,6 +129,18 @@ void BrowserWindow::AddPackage(const wxString& path)
 	ms_Packages.push_back(path);
 }
 
+void BrowserWindow::AddDefinition(const wxString& path)
+{
+	for (definitionlist_t::iterator i = ms_Definitions.begin();
+		i != ms_Definitions.end(); ++i)
+	{
+		if ((*i) == path)
+			return; // already exists
+	}
+
+	ms_Definitions.push_back(path);	
+}
+
 void BrowserWindow::OnCloseEvent(wxCloseEvent& event)
 {
 	if (event.CanVeto())
@@ -126,6 +148,11 @@ void BrowserWindow::OnCloseEvent(wxCloseEvent& event)
 		this->Show(false); // hide ourselves
 		event.Veto();
 	}
+}
+
+void BrowserWindow::OnPageChanged(wxNotebookEvent& event)
+{
+	SwitchTo(event.GetSelection());
 }
 
 #define START_X		5
@@ -142,6 +169,9 @@ TextureBrowser::TextureBrowser(wxWindow* parent)
 		_("Add new texture"));
 	tools->AddTool(wxID_OPEN, _("Open"), wxArtProvider::GetBitmap(wxART_FILE_OPEN),
 		_("Open package"));
+	tools->AddSeparator();
+	tools->AddTool(wxID_REFRESH, _("Refresh"), wxArtProvider::GetBitmap(wxART_REFRESH),
+		_("Refresh"));
 	tools->Realize();
 
 	// create the widgets
@@ -166,16 +196,17 @@ TextureBrowser::TextureBrowser(wxWindow* parent)
 	// configure the event handling
 	Bind(wxEVT_MENU, &TextureBrowser::OnToolAdd, this, wxID_NEW);
 	Bind(wxEVT_MENU, &TextureBrowser::OnToolOpen, this, wxID_OPEN);
+	Bind(wxEVT_MENU, &TextureBrowser::OnToolRefresh, this, wxID_REFRESH);
 	m_Preview->Bind(wxEVT_PAINT, &TextureBrowser::OnPaint, this);
 	m_Preview->Bind(wxEVT_LEFT_UP, &TextureBrowser::OnMouse, this);
 }
 
 TextureBrowser::~TextureBrowser(void)
 {
-	for (textures_t::iterator tex = m_Textures.begin();
-		tex != m_Textures.end(); ++tex)
+	for (texturemap_t::iterator i = m_TextureMap.begin();
+		i != m_TextureMap.end(); ++i)
 	{
-		(*tex).image->drop();
+		(*i).second.image->drop();
 	}
 }
 
@@ -264,9 +295,10 @@ bool TextureBrowser::LoadPackage(const wxString& path, bool preload)
 void TextureBrowser::ResizePreview(void)
 {
 	wxSize size(600, 10);
-	for (textures_t::iterator i = m_Textures.begin(); i != m_Textures.end(); ++i)
+	for (texturemap_t::iterator i = m_TextureMap.begin(); 
+		i != m_TextureMap.end(); ++i)
 	{
-		size.y += i->clickMap.height + SPACE_Y;
+		size.y += (*i).second.clickMap.height + SPACE_Y;
 	}
 
 	m_Preview->SetVirtualSize(size);
@@ -344,36 +376,143 @@ void TextureBrowser::OnToolOpen(wxCommandEvent& event)
 	}
 }
 
+void TextureBrowser::OnToolRefresh(wxCommandEvent& event)
+{
+	if (m_RenderDevice == nullptr)
+		return;
+
+	// start by clearing the texture map
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		wxString path = *i;
+		wxFileInputStream inStream(path);
+		if (inStream.IsOk())
+		{
+			wxZipInputStream zipStream(inStream);
+			if (!zipStream.IsOk())
+			{
+				wxLogWarning(_("Unsupported archive: %s"), path);
+				continue;
+			}
+
+			wxZipEntry* entry = zipStream.GetNextEntry();
+			while (entry)
+			{
+				wxString texPath(entry->GetName());
+
+				// support archives made on any platform
+				if (texPath.StartsWith(wxT("textures/")) ||
+					texPath.StartsWith(wxT("textures\\")))
+				{
+					// build the image path
+					wxString imagePath(path);
+					imagePath.append(wxT(":"));
+					imagePath.append(texPath);
+
+					// this ensures the image is refreshed if it has changed
+					texturemap_t::iterator ti = m_TextureMap.find(imagePath);
+					if (ti != m_TextureMap.end())
+					{
+						(*ti).second.image->drop();
+						m_TextureMap.erase(ti);
+					}
+				}
+
+				entry->UnRef();
+				entry = zipStream.GetNextEntry();
+			}
+		}
+	}
+
+	ResizePreview();
+	m_Preview->Refresh();
+
+	// now load all the images from the packages
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		wxString path = *i;
+		wxFileInputStream inStream(path);
+		if (inStream.IsOk())
+		{
+			wxZipInputStream zipStream(inStream);
+			if (!zipStream.IsOk())
+			{
+				wxLogWarning(_("Unsupported archive: %s"), path);
+				continue;
+			}
+
+			wxZipEntry* entry = zipStream.GetNextEntry();
+			while (entry)
+			{
+				wxString texPath(entry->GetName());
+
+				// support archives made on any platform
+				if (texPath.StartsWith(wxT("textures/")) ||
+					texPath.StartsWith(wxT("textures\\")))
+				{
+					// build the image path
+					wxString imagePath(path);
+					imagePath.append(wxT(":"));
+					imagePath.append(texPath);
+
+					// now we can load the image
+					irr::io::path filename(imagePath.c_str().AsChar());
+					irr::video::IImage* image = m_RenderDevice->getVideoDriver()
+						->createImageFromFile(filename);
+					if (image)
+					{
+						wxSize size(image->getDimension().Width,
+							image->getDimension().Height);
+						wxImage img(size, (unsigned char*)image->lock(), true);
+						image->unlock();
+
+						if (img.IsOk())
+							AddImage(imagePath, img, image);
+					}
+				}
+
+				entry->UnRef();
+				entry = zipStream.GetNextEntry();
+			}
+		}
+	}
+
+	ResizePreview();
+	m_Preview->Refresh();
+}
+
 void TextureBrowser::OnPaint(wxPaintEvent& event)
 {
 	wxPaintDC dc(m_Preview);
 	m_Preview->DoPrepareDC(dc);
 
-	for (textures_t::iterator tex = m_Textures.begin(); tex != m_Textures.end(); ++tex)
+	for (texturemap_t::iterator tex = m_TextureMap.begin(); tex != m_TextureMap.end(); ++tex)
 	{
-		if (tex->path == m_Selected)
+		if ((*tex).second.path == m_Selected)
 		{
 			// draw the selection rectangle
-			wxSize sz = tex->bitmap.GetSize();
+			wxSize sz = (*tex).second.bitmap.GetSize();
 			sz.x += 4;
 			sz.y += 4;
 
 			dc.SetBrush(*wxWHITE_BRUSH);
-			dc.DrawRectangle(wxPoint(START_X - 2, tex->clickMap.y - 2), sz);
+			dc.DrawRectangle(wxPoint(START_X - 2, (*tex).second.clickMap.y - 2), sz);
 		}
 
-		dc.DrawBitmap(tex->bitmap, START_X, tex->clickMap.y, true);
+		dc.DrawBitmap((*tex).second.bitmap, START_X, (*tex).second.clickMap.y, true);
 	}
 }
 
 void TextureBrowser::OnMouse(wxMouseEvent& event)
 {
 	wxPoint pos = m_Preview->CalcUnscrolledPosition(event.GetPosition());
-	for (textures_t::iterator i = m_Textures.begin(); i != m_Textures.end(); ++i)
+	for (texturemap_t::iterator i = m_TextureMap.begin(); i != m_TextureMap.end(); ++i)
 	{
-		if (i->clickMap.Contains(pos))
+		if ((*i).second.clickMap.Contains(pos))
 		{
-			m_Selected = i->path;
+			m_Selected = (*i).second.path;
 			m_StatusBar->SetStatusText(m_Selected);
 			m_Preview->Refresh();
 		}
@@ -399,26 +538,25 @@ void TextureBrowser::AddImage(const wxString& path, wxImage& image,
 	entry.image = irrImage;
 
 	// calculate the click map
-	textures_t::reverse_iterator t = m_Textures.rbegin();
-	if (t != m_Textures.rend())
+	texturemap_t::reverse_iterator t = m_TextureMap.rbegin();
+	if (t != m_TextureMap.rend())
 	{
-		entry.clickMap.x = t->clickMap.x;
-		entry.clickMap.y = t->clickMap.y + t->clickMap.height + SPACE_Y;
+		entry.clickMap.x = (*t).second.clickMap.x;
+		entry.clickMap.y = (*t).second.clickMap.y + (*t).second.clickMap.height + SPACE_Y;
 		entry.clickMap.width = image.GetWidth();
 		entry.clickMap.height = image.GetHeight();
 	}
 	else
 		entry.clickMap = wxRect(wxPoint(START_X, START_Y), image.GetSize());
 
-	m_Textures.push_back(entry);
-	m_TextureMap.emplace(path, std::prev(m_Textures.end()));
+	m_TextureMap.emplace(path, entry);
 }
 
 void TextureBrowser::ScrollTo(const wxString& image)
 {
 	texturemap_t::iterator i = m_TextureMap.find(m_Selected);
 	if (i != m_TextureMap.end())
-		m_Preview->Scroll(wxPoint(0, i->second->clickMap.y));
+		m_Preview->Scroll(wxPoint(0, (*i).second.clickMap.y));
 }
 
 class PropertyType : public wxClientData
@@ -431,7 +569,6 @@ public:
 		INTEGER,
 		VECTOR2,
 		VECTOR3,
-		VECTOR4
 	} Type;
 
 public:
@@ -443,17 +580,15 @@ public:
 		switch (Type)
 		{
 		case STRING:
-			return wxT("String");
+			return wxT("string");
 		case FLOAT:
-			return wxT("Float");
+			return wxT("float");
 		case INTEGER:
-			return wxT("Integer");
+			return wxT("int");
 		case VECTOR2:
-			return wxT("Vector2");
+			return wxT("vec2");
 		case VECTOR3:
-			return wxT("Vector3");
-		case VECTOR4:
-			return wxT("Vector4");
+			return wxT("vec3");
 		}
 
 		return wxEmptyString;
@@ -464,9 +599,12 @@ class ActorItemData : public wxTreeItemData
 {
 public:
 	wxString Definition;
+	wxString SourceFile;
+	bool FromPackage;
 
 public:
-	ActorItemData(wxXmlNode* actor)
+	ActorItemData(wxXmlNode* actor, const wxString& sourceFile, bool fromPackage)
+		: SourceFile(sourceFile), FromPackage(fromPackage)
 	{
 		wxXmlDocument doc;
 		doc.SetRoot(new wxXmlNode(*actor));
@@ -486,6 +624,7 @@ private:
 	wxPropertyGrid* m_Properties;
 	wxPGProperty* m_GeneralProperties;
 	wxPGProperty* m_CustomProperties;
+	wxPGProperty* m_Components;
 	wxArrayString m_ActorCategories;
 
 	int32_t m_NextId;
@@ -493,7 +632,7 @@ private:
 public:
 	EditActorDialog(wxWindow* parent, wxArrayString actorCategories,
 		ActorItemData* data = nullptr)
-		: wxDialog(parent, wxID_ANY, _("Add actor")),
+		: wxDialog(parent, wxID_ANY, _("Edit actor")),
 			m_ActorCategories(actorCategories),
 			m_NextId(0)
 	{
@@ -502,10 +641,16 @@ public:
 
 		wxToolBar* toolBar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
 			wxTB_FLAT | wxTB_HORIZONTAL);
-		toolBar->AddTool(wxID_ADD, _("Add"), wxArtProvider::GetBitmap(wxART_PLUS),
-			_("Add custom property"));
-		toolBar->AddTool(wxID_REMOVE, _("Delete"), wxArtProvider::GetBitmap(wxART_MINUS),
-			_("Delete custom property"));
+		wxToolBarToolBase* addTool = toolBar->AddTool(wxID_ADD, _("Add"), wxArtProvider::GetBitmap(wxART_PLUS),
+			_("Add element to actor"), wxITEM_DROPDOWN);
+		wxToolBarToolBase* removeTool = toolBar->AddTool(wxID_REMOVE, _("Delete"), wxArtProvider::GetBitmap(wxART_MINUS),
+			_("Delete element from actor"));
+
+		wxMenu* addMenu = new wxMenu();
+		addMenu->Append(MENU_ADDPROPERTY, _("Add property to actor"));
+		addMenu->Append(MENU_ADDCOMPONENT, _("Add component to actor"));
+		toolBar->SetDropdownMenu(wxID_ADD, addMenu);
+
 		toolBar->Realize();
 		sizer->Add(toolBar, wxSizerFlags().Expand());
 
@@ -517,9 +662,11 @@ public:
 		m_Properties->MakeColumnEditable(0);
 
 		m_GeneralProperties = new wxPropertyCategory(_("General"));
-		m_CustomProperties = new wxPropertyCategory(_("Custom"));
+		m_CustomProperties = new wxPropertyCategory(_("Properties"));
+		m_Components = new wxPropertyCategory(_("Components"));
 		m_Properties->Append(m_GeneralProperties);
 		m_Properties->Append(m_CustomProperties);
+		m_Properties->Append(m_Components);
 
 		// name
 		wxStringProperty* name = new wxStringProperty(_("Name"));
@@ -543,29 +690,71 @@ public:
 			wxXmlDocument doc(stream);
 			wxXmlNode* root = doc.GetRoot();
 
-			name->SetValueFromString(root->GetAttribute(wxT("Name"),
+			name->SetValueFromString(root->GetAttribute(wxT("name"),
 				root->GetAttribute(wxT("name"))));
 			name->ChangeFlag(wxPG_PROP_READONLY, true);
-			category->SetValueFromString(root->GetAttribute(wxT("Category"),
+			category->SetValueFromString(root->GetAttribute(wxT("category"),
 				root->GetAttribute(wxT("category"))));
 			category->ChangeFlag(wxPG_PROP_READONLY, true);
-			type->SetValueFromString(root->GetAttribute(wxT("Type"),
+			type->SetValueFromString(root->GetAttribute(wxT("type"),
 				root->GetAttribute(wxT("type"))));
 			type->ChangeFlag(wxPG_PROP_READONLY, true);
 
 			wxXmlNode* child = root->GetChildren();
 			while (child)
 			{
-				wxXmlAttribute* attribute = child->GetAttributes();
+				if (child->GetName().CompareTo(wxT("properties"), wxString::ignoreCase) == 0)
+				{
+					wxXmlNode* property = child->GetChildren();
+					while (property)
+					{
+						wxXmlAttribute* attribute = property->GetAttributes();
 
-				// there should only be 1 attribute per node, so work with that
-				AddCustomAttribute(child->GetName(), attribute->GetName(),
-					attribute->GetValue());
+						// there should only be 1 attribute per node, so work with that
+						AddCustomAttribute(m_CustomProperties, property->GetName(),
+							attribute->GetName(), attribute->GetValue(), data->FromPackage);
+
+						property = property->GetNext();
+					}
+				}
+				else if (child->GetName().CompareTo(wxT("components"), wxString::ignoreCase) == 0)
+				{
+					wxXmlNode* component = child->GetChildren();
+					while (component)
+					{
+						wxXmlAttribute* attribute = component->GetAttributes();
+						wxString componentName = attribute->GetValue();
+
+						wxPGProperty* componentProperty = new wxStringProperty(componentName, wxPG_LABEL, "<composed>");
+						m_Properties->AppendIn(m_Components, componentProperty);
+
+						wxXmlNode* property = component->GetChildren();
+						while (property)
+						{
+							wxXmlAttribute* attribute = property->GetAttributes();
+
+							// there should only be 1 attribute per node, so work with that
+							AddCustomAttribute(componentProperty, property->GetName(),
+								attribute->GetName(), attribute->GetValue(), data->FromPackage);
+
+							property = property->GetNext();
+						}
+
+						component = component->GetNext();
+					}
+				}
 
 				child = child->GetNext();
 			}
 
 			m_Properties->Expand(m_CustomProperties);
+
+			if (data->FromPackage)
+			{
+				addTool->Enable(false);
+				removeTool->Enable(false);
+				toolBar->Realize();
+			}
 		}
 
 		wxSizer* buttons = CreateButtonSizer(wxOK | wxCANCEL);
@@ -574,7 +763,8 @@ public:
 		SetSizerAndFit(sizer);
 
 		Bind(wxEVT_BUTTON, &EditActorDialog::OnOKEvent, this, wxID_OK);
-		Bind(wxEVT_MENU, &EditActorDialog::OnToolAdd, this, wxID_ADD);
+		Bind(wxEVT_MENU, &EditActorDialog::OnToolAddProperty, this, MENU_ADDPROPERTY);
+		Bind(wxEVT_MENU, &EditActorDialog::OnToolAddComponent, this, MENU_ADDCOMPONENT);
 		Bind(wxEVT_MENU, &EditActorDialog::OnToolRemove, this, wxID_REMOVE);
 		m_Properties->Bind(wxEVT_PG_LABEL_EDIT_BEGIN, &EditActorDialog::OnLabelEditBegin,
 			this);
@@ -588,10 +778,10 @@ public:
 	wxXmlDocument GetDefinition(void)
 	{
 		wxXmlDocument doc;
-		wxXmlNode* actor = new wxXmlNode(nullptr, wxXML_ELEMENT_NODE, wxT("Actor"));
+		wxXmlNode* actor = new wxXmlNode(nullptr, wxXML_ELEMENT_NODE, wxT("actor"));
 		doc.SetRoot(actor);
 
-		wxXmlNode* custom = nullptr;
+		wxXmlNode* customProperties = new wxXmlNode(actor, wxXML_ELEMENT_NODE, wxT("properties"));
 
 		wxPropertyGridIterator iter = m_Properties->GetIterator();
 		while (!iter.AtEnd())
@@ -599,13 +789,13 @@ public:
 			wxPGProperty* prop = iter.GetProperty();
 			if (prop->GetParent() == m_GeneralProperties)
 			{
-				actor->AddAttribute(prop->GetLabel(), prop->GetValueAsString());
+				actor->AddAttribute(prop->GetLabel().Lower(), prop->GetValueAsString());
 			}
 			else if (prop->GetParent() == m_CustomProperties)
 			{
 				PropertyType* type = dynamic_cast<PropertyType*>(prop->GetClientObject());
-				wxXmlNode* custom = new wxXmlNode(actor, wxXML_ELEMENT_NODE, 
-					type->GetTypeAsString());
+				wxXmlNode* custom = new wxXmlNode(customProperties, wxXML_ELEMENT_NODE, 
+					type->GetTypeAsString().Lower());
 				custom->AddAttribute(prop->GetLabel(), prop->GetValueAsString());
 			}
 
@@ -639,7 +829,7 @@ public:
 	{
 		wxPGProperty* parent = event.GetProperty()->GetParent();
 		if (event.GetProperty()->IsCategory() ||
-			parent->IsCategory() && parent->GetLabel() == _("General"))
+			parent->IsCategory() && parent->GetLabel().CmpNoCase(_("General")) == 0)
 			event.Veto(); // we do not allow editing labels under General
 	}
 
@@ -655,8 +845,8 @@ public:
 				RemoveCustomAttribute(_("Emitter"));
 
 				// add mesh and texture custom properties
-				AddCustomAttribute(_("String"), _("Mesh"));
-				AddCustomAttribute(_("String"), _("Texture"));
+				AddCustomAttribute(m_CustomProperties, _("string"), _("Mesh"));
+				AddCustomAttribute(m_CustomProperties, _("string"), _("Texture"));
 			}
 			else if (prop->GetValueAsString().CompareTo(_("Emitter"), wxString::ignoreCase) == 0)
 			{
@@ -665,7 +855,7 @@ public:
 				RemoveCustomAttribute(_("Texture"));
 
 				// add emitter custom properties
-				AddCustomAttribute(_("String"), _("Emitter"));
+				AddCustomAttribute(m_CustomProperties, _("string"), _("Emitter"));
 			}
 			else if (prop->GetValueAsString().CompareTo(_("Custom"), wxString::ignoreCase) == 0)
 			{
@@ -679,15 +869,14 @@ public:
 		}
 	}
 
-	void OnToolAdd(wxCommandEvent& event)
+	void OnToolAddProperty(wxCommandEvent& event)
 	{
 		wxArrayString propertyChoices;
-		propertyChoices.Add(_("String"));
-		propertyChoices.Add(_("Float"));
-		propertyChoices.Add(_("Integer"));
-		propertyChoices.Add(_("Vector2"));
-		propertyChoices.Add(_("Vector3"));
-		propertyChoices.Add(_("Vector4"));
+		propertyChoices.Add(_("string"));
+		propertyChoices.Add(_("float"));
+		propertyChoices.Add(_("int"));
+		propertyChoices.Add(_("vec2"));
+		propertyChoices.Add(_("vec3"));
 
 		wxSingleChoiceDialog dialog(this, _("Select property type"),
 			_("Add custom property"), propertyChoices, nullptr, wxOK | wxCANCEL | wxCENTRE);
@@ -696,7 +885,7 @@ public:
 			wxString propName;
 			do
 			{
-				propName = wxString::Format(_("Custom%d"), ++m_NextId);
+				propName = wxString::Format(_("custom%d"), ++m_NextId);
 				wxPGProperty* prop = m_Properties->GetPropertyByName(propName);
 				if (prop == nullptr)
 					break;
@@ -704,10 +893,12 @@ public:
 			} while (true);
 
 			wxString selection = dialog.GetStringSelection();
-			AddCustomAttribute(selection, propName);
-
-			// m_Properties->Expand(m_CustomProperties);
+			AddCustomAttribute(m_CustomProperties, selection, propName);
 		}
+	}
+
+	void OnToolAddComponent(wxCommandEvent& event)
+	{
 	}
 
 	void OnToolRemove(wxCommandEvent& event)
@@ -720,65 +911,68 @@ public:
 		m_Properties->DeleteProperty(selection);
 	}
 
-	void AddCustomAttribute(const wxString& type, const wxString& name,
-		const wxString& value = wxEmptyString)
+	void AddCustomAttribute(wxPGProperty* parent, const wxString& type, const wxString& name,
+		const wxString& value = wxEmptyString, bool fromPackage = false)
 	{
-		if (type.CompareTo(_("String"), wxString::ignoreCase) == 0)
+		if (type.CompareTo(_("string"), wxString::ignoreCase) == 0)
 		{
 			wxPGProperty* prop = new wxStringProperty(name);
 			prop->SetValueFromString(value);
 			prop->SetClientObject(new PropertyType(PropertyType::STRING));
-			m_Properties->AppendIn(m_CustomProperties, prop);
+			m_Properties->AppendIn(parent, prop);
+			if (fromPackage)
+				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
-		else if (type.CompareTo(_("Float"), wxString::ignoreCase) == 0)
+		else if (type.CompareTo(_("float"), wxString::ignoreCase) == 0)
 		{
 			wxPGProperty* prop = new wxFloatProperty(name);
 			prop->SetValueFromString(value);
 			prop->SetClientObject(new PropertyType(PropertyType::FLOAT));
-			m_Properties->AppendIn(m_CustomProperties, prop);
+			m_Properties->AppendIn(parent, prop);
+			if (fromPackage)
+				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
-		else if (type.CompareTo(_("Integer"), wxString::ignoreCase) == 0)
+		else if (type.CompareTo(_("int"), wxString::ignoreCase) == 0)
 		{
 			wxPGProperty* prop = new wxIntProperty(name);
 			prop->SetValueFromString(value);
 			prop->SetClientObject(new PropertyType(PropertyType::INTEGER));
-			m_Properties->AppendIn(m_CustomProperties, prop);
+			m_Properties->AppendIn(parent, prop);
+			if (fromPackage)
+				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
-		else if (type.CompareTo(_("Vector2"), wxString::ignoreCase) == 0)
+		else if (type.CompareTo(_("vec2"), wxString::ignoreCase) == 0)
 		{
-			wxPGProperty* prop = m_Properties->AppendIn(m_CustomProperties,
+			// the value is a pair of floats, separated by EITHER a space or a semicolon
+			irr::core::vector2df vec2 = valueToVec2(value);
+
+			wxPGProperty* prop = m_Properties->AppendIn(parent,
 				new wxStringProperty(name, wxPG_LABEL, "<composed>"));
 			prop->SetClientObject(new PropertyType(PropertyType::VECTOR2));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("x")));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("y")));
-			prop->SetValueFromString(value);
+			m_Properties->AppendIn(prop, new wxFloatProperty(_("x"), wxPG_LABEL, vec2.X));
+			m_Properties->AppendIn(prop, new wxFloatProperty(_("y"), wxPG_LABEL, vec2.Y));
+			// prop->SetValueFromString(value);
 			m_Properties->Collapse(prop);
+			if (fromPackage)
+				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
-		else if (type.CompareTo(_("Vector3"), wxString::ignoreCase) == 0)
+		else if (type.CompareTo(_("vec3"), wxString::ignoreCase) == 0)
 		{
-			wxPGProperty* prop = m_Properties->AppendIn(m_CustomProperties,
+			irr::core::vector3df vec3 = valueToVec3(value);
+
+			wxPGProperty* prop = m_Properties->AppendIn(parent,
 				new wxStringProperty(name, wxPG_LABEL, "<composed>"));
 			prop->SetClientObject(new PropertyType(PropertyType::VECTOR3));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("x")));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("y")));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("z")));
-			prop->SetValueFromString(value);
+			m_Properties->AppendIn(prop, new wxFloatProperty(_("x"), wxPG_LABEL, vec3.X));
+			m_Properties->AppendIn(prop, new wxFloatProperty(_("y"), wxPG_LABEL, vec3.Y));
+			m_Properties->AppendIn(prop, new wxFloatProperty(_("z"), wxPG_LABEL, vec3.Z));
+			// prop->SetValueFromString(value);
 			m_Properties->Collapse(prop);
-		}
-		else if (type.CompareTo(_("Vector4"), wxString::ignoreCase) == 0)
-		{
-			wxPGProperty* prop = m_Properties->AppendIn(m_CustomProperties,
-				new wxStringProperty(name, wxPG_LABEL, "<composed>"));
-			prop->SetClientObject(new PropertyType(PropertyType::VECTOR4));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("x")));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("y")));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("z")));
-			m_Properties->AppendIn(prop, new wxFloatProperty(_("w")));
-			prop->SetValueFromString(value);
-			m_Properties->Collapse(prop);
+			if (fromPackage)
+				prop->ChangeFlag(wxPG_PROP_READONLY, true);
 		}
 
-		m_Properties->Expand(m_CustomProperties);
+		m_Properties->Expand(parent);
 	}
 
 	void RemoveCustomAttribute(const wxString& name)
@@ -802,8 +996,9 @@ ActorBrowser::ActorBrowser(wxWindow* parent)
 	tools->AddSeparator();
 	tools->AddTool(wxID_SAVE, _("Save"), wxArtProvider::GetBitmap(wxART_FILE_SAVE),
 		_("Save actor definition"));
-	tools->AddTool(wxID_SAVEAS, _("Save As"), wxArtProvider::GetBitmap(wxART_FILE_SAVE_AS),
-		_("Save actor definition as"));
+	tools->AddSeparator();
+	tools->AddTool(wxID_REFRESH, _("Refresh"), wxArtProvider::GetBitmap(wxART_REFRESH),
+		_("Refresh"));
 	tools->Realize();
 
 	m_Tree = new wxTreeCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
@@ -819,15 +1014,21 @@ ActorBrowser::ActorBrowser(wxWindow* parent)
 	Bind(wxEVT_MENU, &ActorBrowser::OnToolAdd, this, wxID_NEW);
 	Bind(wxEVT_MENU, &ActorBrowser::OnToolOpen, this, wxID_OPEN);
 	Bind(wxEVT_MENU, &ActorBrowser::OnToolSave, this, wxID_SAVE);
-	Bind(wxEVT_MENU, &ActorBrowser::OnToolSaveAs, this, wxID_SAVEAS);
+	Bind(wxEVT_MENU, &ActorBrowser::OnToolRefresh, this, wxID_REFRESH);
 	m_Tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &ActorBrowser::OnItemActivate, this);
 	m_Tree->Bind(wxEVT_TREE_SEL_CHANGED, &ActorBrowser::OnItemSelected, this);
 
-	// for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
-	// 	i != BrowserWindow::ms_Packages.end(); ++i)
-	// {
-	// 	LoadPackage(*i, true);
-	// }
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		LoadPackage(*i, true);
+	}
+
+	for (BrowserWindow::definitionlist_t::iterator i = BrowserWindow::ms_Definitions.begin();
+		i != BrowserWindow::ms_Definitions.end(); ++i)
+	{
+		LoadDefinition(*i, true);
+	}
 }
 
 ActorBrowser::~ActorBrowser(void)
@@ -852,99 +1053,223 @@ wxString ActorBrowser::GetDefinition(const wxString& name)
 	return wxEmptyString;
 }
 
+bool ActorBrowser::LoadPackage(const wxString& path, bool preload)
+{
+	if (!preload)
+	{
+		for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+			i != BrowserWindow::ms_Packages.end(); ++i)
+		{
+			if ((*i) == path)
+				return true; // already exists
+		}
+	}
+
+	wxFileInputStream inStream(path);
+	if (inStream.IsOk())
+	{
+		wxZipInputStream zipStream(inStream);
+		if (!zipStream.IsOk())
+		{
+			wxLogWarning(_("Unsupported archive: %s"), path);
+			return false;
+		}
+
+		if (!preload)
+			BrowserWindow::ms_Packages.push_back(path);
+
+		wxZipEntry* entry = zipStream.GetNextEntry();
+		while (entry)
+		{
+			wxFileName entryPath(entry->GetName());
+
+			// find all the actor files in the package
+			if (entryPath.GetExt().CmpNoCase(wxT("actor")) == 0)
+			{
+				wxString packagePath(path);
+				if (wxFileName(packagePath).GetExt().CmpNoCase(wxT("zip")) == 0)
+					packagePath.Append(wxT("#zip:"));
+				else if (wxFileName(packagePath).GetExt().CmpNoCase(wxT("mpk")) == 0)
+					packagePath.Append(wxT(":"));
+				packagePath.append(entryPath.GetFullPath());
+
+				wxStringOutputStream stream;
+				zipStream.Read(stream);
+				if (stream.IsOk())
+				{
+					wxStringInputStream xmlContent(stream.GetString());
+					wxXmlDocument doc(xmlContent);
+					if (doc.IsOk() &&
+						doc.GetRoot()->GetName().CompareTo(wxT("actor"), wxString::ignoreCase) == 0)
+					{
+						AddActor(doc, path, true);
+					}
+					else
+						wxLogWarning(_("Invalid actor definition file: %s"), entryPath.GetFullPath());
+				}
+			}
+			else if (entryPath.GetExt().CmpNoCase(wxT("component")) == 0)
+			{
+				// we process components here as well
+				wxString packagePath(path);
+				if (wxFileName(packagePath).GetExt().CmpNoCase(wxT("zip")) == 0)
+					packagePath.Append(wxT("#zip:"));
+				else if (wxFileName(packagePath).GetExt().CmpNoCase(wxT("mpk")) == 0)
+					packagePath.Append(wxT(":"));
+				packagePath.append(entryPath.GetFullPath());
+
+				wxStringOutputStream stream;
+				zipStream.Read(stream);
+				if (stream.IsOk())
+				{
+					wxStringInputStream xmlContent(stream.GetString());
+					wxXmlDocument doc(xmlContent);
+					if (doc.IsOk() &&
+						doc.GetRoot()->GetName().CompareTo(wxT("component"), wxString::ignoreCase) == 0)
+					{
+						ComponentFactory::RegisterComponent(doc.GetRoot()->GetAttribute(wxT("name")), doc);
+					}
+					else
+						wxLogWarning(_("Invalid component definition file: %s"), entryPath.GetFullPath());
+				}
+			}
+
+			entry->UnRef();
+			entry = zipStream.GetNextEntry();
+		}
+	}
+
+	return true;
+}
+
+bool ActorBrowser::LoadDefinition(const wxString& path, bool preload)
+{
+	if (!preload)
+	{
+		for (BrowserWindow::definitionlist_t::iterator i = BrowserWindow::ms_Definitions.begin();
+			i != BrowserWindow::ms_Definitions.end(); ++i)
+		{
+			if ((*i) == path)
+				return true; // already exists
+		}
+	}
+
+	wxFileName fn(path);
+	wxXmlDocument doc;
+	if (!doc.Load(fn.GetFullPath()))
+	{
+		wxLogWarning(_("Failed to load definition file: %s"), fn.GetFullPath());
+		return false;
+	}
+
+	if (fn.GetExt().CmpNoCase(wxT("actor")) == 0 &&
+		doc.GetRoot()->GetName().CompareTo(wxT("actor"), wxString::ignoreCase) == 0)
+	{
+		AddActor(doc, path, false);
+	}
+	else if (fn.GetExt().CmpNoCase(wxT("component")) == 0 &&
+		doc.GetRoot()->GetName().CompareTo(wxT("component"), wxString::ignoreCase) == 0)
+	{
+		ComponentFactory::RegisterComponent(doc.GetRoot()->GetAttribute(wxT("name")), doc);
+	}
+	else
+		return true; // we don't process this file
+
+	if (!preload)
+		BrowserWindow::ms_Definitions.push_back(path);
+
+	return true;
+}
+
 void ActorBrowser::OnToolAdd(wxCommandEvent& event)
 {
+	wxString definitionFile;
+
+	wxFileDialog fileDialog(this,
+		_("New Actor definition"), wxEmptyString, wxEmptyString,
+		_("Actor Definition (*.actor)|*.actor"), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fileDialog.ShowModal() == wxID_CANCEL)
+		return;
+	definitionFile = fileDialog.GetPath();
+
 	EditActorDialog dialog(this, m_Categories);
 	if (dialog.ShowModal() == wxID_OK)
 	{
-		wxXmlDocument doc = dialog.GetDefinition();
-		AddActor(doc.GetRoot());
+		wxXmlDocument doc(dialog.GetDefinition());
+		if (doc.Save(definitionFile))
+			AddActor(doc, definitionFile, false);
 	}
 }
 
 void ActorBrowser::OnToolOpen(wxCommandEvent& event)
 {
 	wxFileDialog dialog(this,
-		_("Open Actor definition file"), wxEmptyString,
-		wxT("Actors.xml"), _("Actor Definition (*.xml)|*.xml"),
+		_("Open Actor definition file"), wxEmptyString, wxEmptyString,
+		_("Manifold Archive Package (*.mpk)|*.mpk|Zip Archive (*.zip)|*.zip|Actor Definition (*.actor)|*.actor"),
 		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 	if (dialog.ShowModal() == wxID_CANCEL)
 		return;
 
-	wxXmlDocument doc;
-	if (!doc.Load(dialog.GetPath()) ||
-		doc.GetRoot()->GetName().CompareTo(wxT("Actors"), wxString::ignoreCase) != 0)
+	// is it a raw .actor file?
+	wxFileName fn(dialog.GetPath());
+	if (fn.GetExt().CmpNoCase(wxT("actor")) == 0)
 	{
-		wxLogWarning(_("Invalid Actor Definition file: %s"), dialog.GetPath());
-		return;
+		wxXmlDocument doc;
+		if (!doc.Load(dialog.GetPath()) ||
+			doc.GetRoot()->GetName().CompareTo(wxT("actor"), wxString::ignoreCase) != 0)
+		{
+			wxLogWarning(_("Invalid Actor definition file: %s"), fn.GetFullPath());
+			return;
+		}
+
+		AddActor(doc, fn.GetFullPath(), false);
 	}
-
-	m_Tree->DeleteChildren(m_Root);
-
-	wxXmlNode* actor = doc.GetRoot()->GetChildren();
-	while (actor)
+	else
 	{
-		AddActor(actor);
-		actor = actor->GetNext();
+		LoadPackage(fn.GetFullPath());
 	}
-
-	m_DefinitionFile = wxFileName(dialog.GetPath());
 }
 
 void ActorBrowser::OnToolSave(wxCommandEvent& event)
 {
-	if (!m_DefinitionFile.IsOk())
+	wxTreeItemId selected = m_Tree->GetSelection();
+	if (!selected.IsOk())
+		wxMessageBox(_("No actor selected"), _("Select an actor to save"), wxICON_INFORMATION);
+	else
 	{
-		OnToolSaveAs(event);
-		return;
-	}
-
-	wxXmlDocument doc;
-	wxXmlNode* root = new wxXmlNode(nullptr, wxXML_ELEMENT_NODE, wxT("Actors"));
-	doc.SetRoot(root);
-
-	// walk the actor tree
-	wxTreeItemIdValue cookie;
-	wxTreeItemId item = m_Tree->GetFirstChild(m_Root, cookie);
-	while (item.IsOk())
-	{
-		wxTreeItemIdValue childCookie;
-		wxTreeItemId child = m_Tree->GetFirstChild(item, childCookie);
-		while (child.IsOk())
+		ActorItemData* data = dynamic_cast<ActorItemData*>(m_Tree->GetItemData(selected));
+		if (data && !data->FromPackage)
 		{
-			ActorItemData* data = dynamic_cast<ActorItemData*>(m_Tree->GetItemData(child));
-			if (data)
+			wxXmlDocument doc;
+			wxStringInputStream stream(data->Definition);
+			doc.Load(stream);
+			if (doc.Save(data->SourceFile))
 			{
-				wxStringInputStream stream(data->Definition);
-				wxXmlDocument _doc(stream);
-				wxXmlNode* node = _doc.GetRoot();
-
-				// append to the document
-				root->AddChild(new wxXmlNode(*node));
+				// remove the asterisk from the name
+				wxString name = m_Tree->GetItemText(selected);
+				name.RemoveLast();
+				m_Tree->SetItemText(selected, name);
 			}
-
-			child = m_Tree->GetNextChild(child, childCookie);
 		}
-
-		item = m_Tree->GetNextChild(item, cookie);
 	}
-
-	doc.Save(m_DefinitionFile.GetFullPath());
 }
 
-void ActorBrowser::OnToolSaveAs(wxCommandEvent& event)
+void ActorBrowser::OnToolRefresh(wxCommandEvent& event)
 {
-	wxFileDialog dialog(this,
-		_("Save Actor Definition As..."), 
-		wxEmptyString,
-		wxT("Actors.xml"),
-		_("Actor Definition (*.xml)|*.xml"),
-		wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-	if (dialog.ShowModal() == wxID_CANCEL)
-		return; // not saving today
+	m_Tree->DeleteChildren(m_Root);
+	m_ItemPaths.clear();
 
-	m_DefinitionFile = wxFileName(dialog.GetPath());
-	OnToolSave(event);
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		LoadPackage(*i, true);
+	}
+
+	for (BrowserWindow::definitionlist_t::iterator i = BrowserWindow::ms_Definitions.begin();
+		i != BrowserWindow::ms_Definitions.end(); ++i)
+	{
+		LoadDefinition(*i, true);
+	}
 }
 
 void ActorBrowser::OnItemActivate(wxTreeEvent& event)
@@ -954,10 +1279,10 @@ void ActorBrowser::OnItemActivate(wxTreeEvent& event)
 	if (data)
 	{
 		EditActorDialog dialog(this, m_Categories, data);
-		if (dialog.ShowModal() == wxID_OK)
+		// if the actor is from a package, we don't update it
+		if (dialog.ShowModal() == wxID_OK && !data->FromPackage)
 		{
-			wxXmlDocument doc = dialog.GetDefinition();
-			AddActor(doc.GetRoot());
+			AddActor(dialog.GetDefinition(), data->SourceFile, false);
 		}
 	}
 	else
@@ -975,34 +1300,59 @@ void ActorBrowser::OnItemSelected(wxTreeEvent& event)
 	}
 	else
 		m_Selected = wxEmptyString;
+
+	if (!m_Selected.IsEmpty())
+	{
+		// remove the asterisk from the name, if it exists
+		if (m_Selected.Last() == wxT('*'))
+			m_Selected.RemoveLast();
+	}
 }
 
-void ActorBrowser::AddActor(wxXmlNode* actor)
+void ActorBrowser::AddActor(const wxXmlDocument& definition, const wxString& sourceFile, bool fromPackage)
 {
-	if (actor->GetName().CompareTo(wxT("Actor"), wxString::ignoreCase) == 0)
+	wxXmlNode* actor = definition.GetRoot();
+	if (actor->GetName().CompareTo(wxT("actor"), wxString::ignoreCase) == 0)
 	{
-		wxString category = actor->GetAttribute(wxT("Category"));
+		wxString category = actor->GetAttribute(wxT("category"));
 		wxTreeItemId categoryId = FindItem(category, m_Root);
 		if (!categoryId.IsOk())
 		{
 			m_Categories.Add(category);
 			categoryId = m_Tree->AppendItem(m_Root, category);
+			m_Tree->SortChildren(m_Root);
 		}
 
 		// try to find the actor first, maybe it already exists and we are updating it
-		wxTreeItemId actorId = FindItem(actor->GetAttribute(wxT("Name")), categoryId);
+		wxString name = actor->GetAttribute(wxT("name"));
+		wxTreeItemId actorId = FindItem(name, categoryId);
 		if (actorId.IsOk())
 		{
 			// updating
-			delete m_Tree->GetItemData(actorId);
-			m_Tree->SetItemData(actorId, new ActorItemData(actor));
+			ActorItemData* data = dynamic_cast<ActorItemData*>(m_Tree->GetItemData(actorId));
+			if (data)
+			{
+				wxStringOutputStream stream;
+				definition.Save(stream);
+				data->Definition = stream.GetString();
+				data->SourceFile = sourceFile;
+				data->FromPackage = fromPackage;
+			}
+			else
+				m_Tree->SetItemData(actorId, new ActorItemData(actor, sourceFile, fromPackage));
+			
+			// append an asterisk to the name to indicate that it has been modified
+			m_Tree->SetItemText(actorId, name + wxT("*"));
+			m_Tree->EnsureVisible(actorId);
 		}
 		else
 		{
-			actorId = m_Tree->AppendItem(categoryId,
-				actor->GetAttribute(wxT("Name")));
-			m_Tree->SetItemData(actorId, new ActorItemData(actor));
+			actorId = m_Tree->AppendItem(categoryId, name);
+			m_Tree->SetItemData(actorId, new ActorItemData(actor, sourceFile, fromPackage));
 			m_Tree->EnsureVisible(actorId);
+
+			m_ItemPaths[actorId] = sourceFile;
+			BrowserWindow::ms_Definitions.push_back(sourceFile);
 		}
 	}
 }
@@ -1015,7 +1365,8 @@ wxTreeItemId ActorBrowser::FindItem(const wxString& name, wxTreeItemId& start)
 	while (item.IsOk())
 	{
 		wxString itemName = m_Tree->GetItemText(item);
-		if (itemName.CompareTo(name, wxString::ignoreCase) == 0)
+		if (itemName.CompareTo(name, wxString::ignoreCase) == 0 ||
+			itemName.CompareTo(name + wxT("*"), wxString::ignoreCase) == 0)
 			return item;
 
 		// Recursively search children of this item
@@ -1056,6 +1407,10 @@ SoundBrowser::SoundBrowser(wxWindow* parent)
 	stopTool.push_back(BitmapFromFS(fs, "editor.mpk:icons/stop64.png", wxBITMAP_TYPE_PNG));
 	tools->AddTool(MENU_STOPSOUND, _("Stop sound"), wxBitmapBundle::FromBitmaps(stopTool),
 		_("Stop playing sound"));
+	
+	tools->AddSeparator();
+	tools->AddTool(wxID_REFRESH, _("Refresh"), wxArtProvider::GetBitmap(wxART_REFRESH),
+		_("Refresh"));
 	tools->Realize();
 
 	m_List = new wxListView(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
@@ -1075,6 +1430,7 @@ SoundBrowser::SoundBrowser(wxWindow* parent)
 	Bind(wxEVT_MENU, &SoundBrowser::OnToolOpen, this, wxID_OPEN);
 	Bind(wxEVT_MENU, &SoundBrowser::OnToolPlay, this, MENU_PLAYSOUND);
 	Bind(wxEVT_MENU, &SoundBrowser::OnToolStop, this, MENU_STOPSOUND);
+	Bind(wxEVT_MENU, &SoundBrowser::OnToolRefresh, this, wxID_REFRESH);
 	m_List->Bind(wxEVT_LIST_ITEM_ACTIVATED, &SoundBrowser::OnItemActivate, this);
 }
 
@@ -1181,6 +1537,44 @@ bool SoundBrowser::LoadPackage(const wxString& path, bool preload)
 
 void SoundBrowser::OnToolAdd(wxCommandEvent& event)
 {
+	wxFileDialog openDialog(this,
+		_("Add sound"), wxEmptyString, wxEmptyString,
+		_("Sound (*.wav)|*.wav|Sound (*.mp3)|*.mp3|Sound (*.flac)|*.flac"),
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openDialog.ShowModal() == wxID_CANCEL)
+		return;
+
+	wxFileName soundPath(openDialog.GetPath());
+	// get the meta data for the item
+	uint32_t sampleRate, channels;
+	m_AudioSystem->getSoundMetadata(soundPath.GetFullPath(), sampleRate, channels);
+	if (sampleRate == 0 || channels == 0)
+	{
+		wxLogWarning(_("Failed to get sound metadata for: %s"), soundPath.GetFullPath());
+		return;
+	}
+
+	long index = m_List->InsertItem(m_List->GetItemCount(), soundPath.GetName());
+	m_List->SetItemData(index, -1);
+	m_ItemPaths[index] = soundPath.GetFullPath();
+
+	wxFileType* mimeType = wxTheMimeTypesManager->GetFileTypeFromExtension(soundPath.GetExt());
+	if (mimeType)
+	{
+		wxString type;
+		if (mimeType->GetMimeType(&type))
+			m_List->SetItem(index, COL_TYPE, type);
+		else
+			m_List->SetItem(index, COL_TYPE, _("Unknown"));
+
+		delete mimeType;
+	}
+	else
+		m_List->SetItem(index, COL_TYPE, _("Unknown"));
+
+	m_List->SetItem(index, COL_CHANNELS, wxString::Format(_("%d"), channels));
+	m_List->SetItem(index, COL_FREQ, wxString::Format(_("%d"), sampleRate));
+	m_List->SetItem(index, COL_PACKAGE, soundPath.GetFullPath());
 }
 
 void SoundBrowser::OnToolOpen(wxCommandEvent& event)
@@ -1217,6 +1611,21 @@ void SoundBrowser::OnToolStop(wxCommandEvent& event)
 	m_AudioSystem->stopSound();
 }
 
+void SoundBrowser::OnToolRefresh(wxCommandEvent& event)
+{
+	if (m_AudioSystem == nullptr)
+		return;
+
+	m_List->DeleteAllItems();
+	m_ItemPaths.clear();
+
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		LoadPackage(*i, true);
+	}
+}
+
 void SoundBrowser::OnItemActivate(wxListEvent& event)
 {
 	long index = event.GetIndex();
@@ -1237,12 +1646,14 @@ MeshBrowser::MeshBrowser(wxWindow* parent)
 		_("Add mesh"));
 	tools->AddTool(wxID_OPEN, _("Open"), wxArtProvider::GetBitmap(wxART_FILE_OPEN),
 		_("Open package"));
+	tools->AddSeparator();
+	tools->AddTool(wxID_REFRESH, _("Refresh"), wxArtProvider::GetBitmap(wxART_REFRESH),
+		_("Refresh"));
 	tools->Realize();
 
 	m_List = new wxListView(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
 		wxLC_REPORT | wxLC_VRULES);
-	m_List->AppendColumn(_("Path"));
-	m_List->AppendColumn(_("Type"));
+	m_List->AppendColumn(_("Name"));
 	m_List->AppendColumn(_("Package"));
 
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
@@ -1252,12 +1663,19 @@ MeshBrowser::MeshBrowser(wxWindow* parent)
 
 	Bind(wxEVT_MENU, &MeshBrowser::OnToolAdd, this, wxID_NEW);
 	Bind(wxEVT_MENU, &MeshBrowser::OnToolOpen, this, wxID_OPEN);
+	Bind(wxEVT_MENU, &MeshBrowser::OnToolRefresh, this, wxID_REFRESH);
 	m_List->Bind(wxEVT_LIST_ITEM_SELECTED, &MeshBrowser::OnItemSelected, this);
 
 	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
 		i != BrowserWindow::ms_Packages.end(); ++i)
 	{
 		LoadPackage(*i, true);
+	}
+
+	for (BrowserWindow::definitionlist_t::iterator i = BrowserWindow::ms_Definitions.begin();
+		i != BrowserWindow::ms_Definitions.end(); ++i)
+	{
+		LoadDefinition(*i, true);
 	}
 }
 
@@ -1288,48 +1706,32 @@ bool MeshBrowser::LoadPackage(const wxString& path, bool preload)
 			return false;
 		}
 
+		if (!preload)
+			BrowserWindow::ms_Packages.push_back(path);
+
 		wxZipEntry* entry = zipStream.GetNextEntry();
 		while (entry)
 		{
 			wxString entryPath(entry->GetName());
 
 			// support archives made on any platform
-			if (entryPath.StartsWith(wxT("mesh/")) ||
-				entryPath.StartsWith(wxT("mesh\\")) ||
-				entryPath.StartsWith(wxT("models/")) ||
-				entryPath.StartsWith(wxT("models\\")))
+			if (entryPath.EndsWith(wxT(".prefab")))
 			{
 				// build the full path
-				wxString meshPath(_path.GetFullPath());
-				if (_path.GetExt().CmpNoCase(wxT("zip")) == 0)
-					meshPath.append(wxT("#zip"));
-				// else if (_path.GetExt().CmpNoCase(wxT("mpk")) == 0)
-				// 	meshPath.append(wxT("#mpk"));
+				wxFileName prefabName(entryPath);
 
-				meshPath.append(wxT(":"));
-				meshPath.append(entryPath);
-
-				// add this to the list
-				long index = m_List->InsertItem(m_List->GetItemCount(), entry->GetName());
-				m_List->SetItemData(index, -1);
-				m_ItemPaths[index] = meshPath;
-
-				wxFileName fn(entry->GetName());
-				wxFileType* mimeType = wxTheMimeTypesManager->GetFileTypeFromExtension(fn.GetExt());
-				if (mimeType)
+				// read the prefab file
+				wxStringOutputStream prefabStream;
+				zipStream.Read(prefabStream);
+				if (prefabStream.IsOk())
 				{
-					wxString type;
-					if (mimeType->GetMimeType(&type))
-						m_List->SetItem(index, COL_TYPE, type);
-					else
-						m_List->SetItem(index, COL_TYPE, _("Unknown"));
+					// add this to the list
+					long index = m_List->InsertItem(m_List->GetItemCount(), prefabName.GetName());
+					// m_List->SetItemData(index, -1);
 
-					delete mimeType;
+					m_ItemDefinitions[index] = prefabStream.GetString();
+					m_List->SetItem(index, COL_PACKAGE, _path.GetFullPath());
 				}
-				else
-					m_List->SetItem(index, COL_TYPE, _("Unknown"));
-
-				m_List->SetItem(index, COL_PACKAGE, _path.GetFullPath());
 			}
 
 			entry->UnRef();
@@ -1340,8 +1742,77 @@ bool MeshBrowser::LoadPackage(const wxString& path, bool preload)
 	return true;
 }
 
+bool MeshBrowser::LoadDefinition(const wxString& path, bool preload)
+{
+	if (!preload)
+	{
+		for (BrowserWindow::definitionlist_t::iterator i = BrowserWindow::ms_Definitions.begin();
+			i != BrowserWindow::ms_Definitions.end(); ++i)
+		{
+			if ((*i) == path)
+				return true; // already exists
+		}
+	}
+
+	wxFileName fn(path);
+	wxXmlDocument doc;
+	if (!doc.Load(fn.GetFullPath()))
+	{
+		wxLogWarning(_("Failed to load definition file: %s"), fn.GetFullPath());
+		return false;
+	}
+
+	if (fn.GetExt().CmpNoCase(wxT("prefab")) == 0 &&
+		doc.GetRoot()->GetName().CompareTo(wxT("prefab"), wxString::ignoreCase) == 0)
+	{
+		// add this to the list
+		long index = m_List->InsertItem(m_List->GetItemCount(), fn.GetName());
+
+		wxStringOutputStream prefabStream;
+		doc.Save(prefabStream);
+		m_ItemDefinitions[index] = prefabStream.GetString();
+		m_List->SetItem(index, COL_PACKAGE, fn.GetFullPath());
+	}
+	else
+		return true; // we don't process this file
+
+	if (!preload)
+		BrowserWindow::ms_Definitions.push_back(path);
+
+	return true;
+}
+
 void MeshBrowser::OnToolAdd(wxCommandEvent& event)
 {
+	wxFileDialog openDialog(this,
+		_("Add prefab"), wxEmptyString, wxEmptyString,
+		_("Prefab (*.prefab)|*.prefab"),
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openDialog.ShowModal() == wxID_CANCEL)
+		return;
+
+	wxFileName prefabPath(openDialog.GetPath());
+	wxString prefabName = prefabPath.GetName();
+
+	// confirm the file is at least an XML file
+	wxXmlDocument doc(prefabPath.GetFullPath());
+	if (!doc.IsOk())
+	{
+		wxLogWarning(_("Invalid prefab file: %s"), prefabPath.GetFullPath());
+		return;
+	}
+	
+	// read the prefab file
+	wxFileInputStream prefabStream(prefabPath.GetFullPath());
+	wxStringOutputStream prefabData;
+	prefabStream.Read(prefabData);
+	if (prefabData.IsOk())
+	{
+		// add this to the list
+		long index = m_List->InsertItem(m_List->GetItemCount(), prefabName);
+		m_ItemDefinitions[index] = prefabData.GetString();
+		m_List->SetItem(index, COL_PACKAGE, prefabPath.GetFullPath());
+	}
 }
 
 void MeshBrowser::OnToolOpen(wxCommandEvent& event)
@@ -1363,14 +1834,36 @@ void MeshBrowser::OnToolOpen(wxCommandEvent& event)
 	LoadPackage(openDialog.GetPath(), false);	
 }
 
+void MeshBrowser::OnToolRefresh(wxCommandEvent& event)
+{
+	m_List->DeleteAllItems();
+	m_ItemDefinitions.clear();
+
+	for (BrowserWindow::packagelist_t::iterator i = BrowserWindow::ms_Packages.begin();
+		i != BrowserWindow::ms_Packages.end(); ++i)
+	{
+		LoadPackage(*i, true);
+	}
+
+	for (BrowserWindow::definitionlist_t::iterator i = BrowserWindow::ms_Definitions.begin();
+		i != BrowserWindow::ms_Definitions.end(); ++i)
+	{
+		LoadDefinition(*i, true);
+	}
+}
+
 void MeshBrowser::OnItemSelected(wxListEvent& event)
 {
-	// wxFileName selection(m_List->GetItemText(event.GetIndex()));
-	// m_Selected = selection.GetName();
-	m_Selected = m_ItemPaths[event.GetIndex()];
+	m_Selection = m_List->GetItemText(event.GetIndex());
+	m_Definition = m_ItemDefinitions[event.GetIndex()];
 }
 
 const wxString& MeshBrowser::GetSelection(void)
 {
-	return m_Selected;
+	return m_Selection;
+}
+
+const wxString& MeshBrowser::GetDefinition(void)
+{
+	return m_Definition;
 }

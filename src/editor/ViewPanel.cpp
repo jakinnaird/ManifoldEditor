@@ -7,6 +7,7 @@
 #include "BrowserWindow.hpp"
 #include "Commands.hpp"
 #include "Common.hpp"
+#include "Component.hpp"
 #include "FSHandler.hpp"
 #include "MainWindow.hpp"
 #include "MapEditor.hpp"
@@ -379,6 +380,11 @@ void ViewPanel::OnResize(wxSizeEvent& event)
 		irr::scene::ISceneNodeFactory* factory = new SceneNodeFactory(m_RenderDevice->getSceneManager());
 		m_RenderDevice->getSceneManager()->registerSceneNodeFactory(factory);
 		factory->drop();
+
+		// register the component factory
+		irr::scene::ISceneNodeAnimatorFactory* animatorFactory = new ComponentFactory(m_RenderDevice->getSceneManager());
+		m_RenderDevice->getSceneManager()->registerSceneNodeAnimatorFactory(animatorFactory);
+		animatorFactory->drop();
 
 		// create default font
 		irr::io::path defaultFontUri("editor.mpk:fonts/Gen-Light5.ttf");
@@ -1090,20 +1096,20 @@ void ViewPanel::OnToolMesh(wxCommandEvent& event)
 	irr::core::line3df ray(pos, target);
 
 	irr::core::vector3df location = ray.getMiddle();
-	wxString meshName(m_Browser->GetMesh());
+	// wxString meshName(m_Browser->GetMesh());
 
-	// build the package path
-	wxFileName packageName(meshName.BeforeLast(wxT(':')));
-	// remove #zip if present
-	if (packageName.GetExt().Contains(wxT("#zip")))
-		packageName.SetExt(wxT("zip"));
+	// // build the package path
+	// wxFileName packageName(meshName.BeforeLast(wxT(':')));
+	// // remove #zip if present
+	// if (packageName.GetExt().Contains(wxT("#zip")))
+	// 	packageName.SetExt(wxT("zip"));
 
-	wxString meshFile = meshName.AfterLast(wxT(':'));
-	wxString meshPath = packageName.GetFullName() + wxT(":") + meshFile;
+	// wxString meshFile = meshName.AfterLast(wxT(':'));
+	// wxString meshPath = packageName.GetFullName() + wxT(":") + meshFile;
 
 	m_Commands.Submit(new AddNodeCommand(TOOL_MESH, 
 		m_ExplorerPanel, m_RenderDevice->getSceneManager(), m_MapRoot,
-		m_Map, location, m_Browser->GetMesh()));
+		m_Map, location, m_Browser->GetMeshDefinition()));
 }
 
 void ViewPanel::OnEditCut(wxCommandEvent& event)

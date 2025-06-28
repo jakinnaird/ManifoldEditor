@@ -5,6 +5,7 @@
 */
 
 #include "Commands.hpp"
+#include "Convert.hpp"
 #include "MapEditor.hpp"
 #include "PropertyPanel.hpp"
 #include "../extend/CylinderSceneNode.hpp"
@@ -44,9 +45,7 @@ PropertyPanel::PropertyPanel(wxWindow* parent, wxCommandProcessor& cmdProc)
 
 	m_Properties = new wxPropertyGrid(this, wxID_ANY, wxDefaultPosition,
 		wxDefaultSize, wxPG_SPLITTER_AUTO_CENTER | wxPG_DEFAULT_STYLE);
-
 	m_Properties->EnableCategories(true);
-	m_Properties->MakeColumnEditable(0);
 
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(m_ToolBar, wxSizerFlags(1).Expand());
@@ -90,8 +89,10 @@ void PropertyPanel::Refresh(void)
 
 		m_GeneralProperties = new wxPropertyCategory(_("General"));
 		m_CustomProperties = new wxPropertyCategory(_("Custom"));
+		m_Components = new wxPropertyCategory(_("Components"));
 		m_Properties->Append(m_GeneralProperties);
 		m_Properties->Append(m_CustomProperties);
+		m_Properties->Append(m_Components);
 
 		// name
 		wxStringProperty* name = new wxStringProperty(_("Name"));
@@ -466,6 +467,49 @@ void PropertyPanel::Refresh(void)
 				}
 			}
 		}
+	
+		// add the components
+		const irr::scene::ISceneNodeAnimatorList animators = m_SceneNode->getAnimators();
+		for (irr::scene::ISceneNodeAnimatorList::ConstIterator i = animators.begin();
+			i != animators.end(); ++i)
+		{
+			wxPGProperty* component = nullptr;
+
+			irr::io::IAttributes* animAttribs = m_Map->GetSceneMgr()->getFileSystem()->createEmptyAttributes();
+			irr::scene::ESCENE_NODE_ANIMATOR_TYPE type = (*i)->getType();
+			irr::u32 factoryCount = m_Map->GetSceneMgr()->getRegisteredSceneNodeAnimatorFactoryCount();
+			for (irr::u32 j = 0; j < factoryCount; ++j)
+			{
+				irr::scene::ISceneNodeAnimatorFactory* factory = m_Map->GetSceneMgr()->getSceneNodeAnimatorFactory(j);
+				const irr::c8* name = factory->getCreateableSceneNodeAnimatorTypeName(type);
+				if (name)
+				{
+					(*i)->serializeAttributes(animAttribs, &opts);
+					// if (!animAttribs->existsAttribute("Type"))
+					// 	animAttribs->setAttribute("Type", name);
+
+					component = new wxPropertyCategory(name);
+					break;
+				}
+			}
+
+			if (component)
+			{
+				m_Properties->Insert(m_Components, m_Components->GetChildCount(), component);
+
+				for (irr::u32 j = 0; j < animAttribs->getAttributeCount(); ++j)
+				{
+					AddAttribute(component, animAttribs->getAttributeType(j),
+						animAttribs->getAttributeName(j),
+						animAttribs->getAttributeAsString(j).c_str());
+				}
+
+				m_Properties->Collapse(component);
+			}
+
+			animAttribs->drop();
+		}
+
 	}
 	else // refresh the children
 	{
@@ -499,119 +543,6 @@ void PropertyPanel::OnValueChanging(wxPropertyGridEvent& event)
 	{
 		event.Veto(); // for now, don't allow the name change
 	}
-}
-
-irr::core::vector3df valueToVec3(const wxString& value)
-{
-	std::istringstream iss(value.utf8_string());
-	std::string token;
-
-	// X
-	double _x = 0;
-	std::getline(iss, token, ';');
-	wxString _token(token);
-	_token.ToDouble(&_x);
-
-	// Y
-	double _y = 0;
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToDouble(&_y);
-
-	// Z
-	double _z = 0;
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToDouble(&_z);
-
-	return irr::core::vector3df(_x, _y, _z);
-}
-
-irr::core::vector2df valueToVec2(const wxString& value)
-{
-	std::istringstream iss(value.utf8_string());
-	std::string token;
-
-	// X
-	double _x = 0;
-	std::getline(iss, token, ';');
-	wxString _token(token);
-	_token.ToDouble(&_x);
-
-	// Y
-	double _y = 0;
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToDouble(&_y);
-
-	return irr::core::vector2df(_x, _y);
-}
-
-irr::core::dimension2df valueToDim2df(const wxString& value)
-{
-	irr::core::dimension2df result;
-
-	std::istringstream iss(value.utf8_string());
-	std::string token;
-
-	double _value = 0;
-	std::getline(iss, token, ';');
-	wxString _token(token);
-	_token.ToDouble(&_value);
-	result.Width = _value;
-
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToDouble(&_value);
-	result.Height = _value;
-
-	return result;
-}
-
-irr::core::dimension2du valueToDim2du(const wxString& value)
-{
-	irr::core::dimension2du result;
-
-	std::istringstream iss(value.utf8_string());
-	std::string token;
-
-	std::getline(iss, token, ';');
-	wxString _token(token);
-	_token.ToUInt(&result.Width);
-
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToUInt(&result.Height);
-
-	return result;
-}
-
-irr::video::SColor valueToColor(const wxString& value)
-{
-	std::istringstream iss(value.utf8_string());
-	std::string token;
-
-	irr::u32 alpha = 255;
-	std::getline(iss, token, ';');
-	wxString _token(token);
-	_token.ToUInt(&alpha);
-
-	irr::u32 red = 255;
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToUInt(&red);
-
-	irr::u32 green = 255;
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToUInt(&green);
-
-	irr::u32 blue = 255;
-	std::getline(iss, token, ';');
-	_token.assign(token);
-	_token.ToUInt(&blue);
-
-	return irr::video::SColor(alpha, red, green, blue);
 }
 
 void PropertyPanel::OnValueChanged(wxPropertyGridEvent& event)
@@ -733,80 +664,130 @@ void PropertyPanel::OnValueChanged(wxPropertyGridEvent& event)
 		wxEnumProperty* prop = (wxEnumProperty*)event.GetProperty();
 		wxString nodeName = prop->GetChoices().GetLabel((long)event.GetPropertyValue());
 
-		ViewPanel* viewPanel = ((MapEditor*)GetParent())->GetViewPanel();
-
-		PathSceneNode* pathNode = dynamic_cast<PathSceneNode*>(m_SceneNode);
-		if (nodeName.CompareTo(wxT("--none--")) == 0)
-		{
-			pathNode->setPrev(nullptr);
-		}
-		else
-		{
-			PathSceneNode* other = dynamic_cast<PathSceneNode*>(
-				m_SceneNode->getSceneManager()
-				->getSceneNodeFromName(nodeName.c_str().AsChar(), nullptr));
-			if (other)
-			{
-				pathNode->setPrev(other);
-				pathNode->setPathName(other->getPathName());
-				pathNode->drawLink(true);
-			}
-		}
+		m_Commands.Submit(new UpdatePathLinkCommand(m_SceneNode->getSceneManager(),
+			m_SceneNode->getName(), nodeName, wxEmptyString, true, false));
 	}
 	else if (propName.StartsWith(_("Next Node")))
 	{
 		wxEnumProperty* prop = (wxEnumProperty*)event.GetProperty();
 		wxString nodeName = prop->GetChoices().GetLabel((long)event.GetPropertyValue());
 
-		ViewPanel* viewPanel = ((MapEditor*)GetParent())->GetViewPanel();
-
-		PathSceneNode* pathNode = dynamic_cast<PathSceneNode*>(m_SceneNode);
-		if (nodeName.CompareTo(wxT("--none--")) == 0)
-		{
-			pathNode->setNext(nullptr);
-		}
-		else
-		{
-			PathSceneNode* other = dynamic_cast<PathSceneNode*>(
-				m_SceneNode->getSceneManager()
-				->getSceneNodeFromName(nodeName.c_str().AsChar(), nullptr));
-			if (other)
-			{
-				pathNode->setNext(other);
-				pathNode->setPathName(other->getPathName());
-				pathNode->drawLink(true);
-			}
-		}
+		m_Commands.Submit(new UpdatePathLinkCommand(m_SceneNode->getSceneManager(),
+			m_SceneNode->getName(), wxEmptyString, nodeName, false, true));
 	}
 	else
 	{
-		// custom property
-		irr::io::IAttributes* attribs = m_Map->GetAttributes(m_SceneNode->getName());
 		wxPGProperty* property = event.GetProperty();
-		PropertyClientData* clientData = static_cast<PropertyClientData*>(property->GetClientData());
-		switch (clientData->m_Type)
+
+		if (property->GetParent() == m_CustomProperties)
 		{
-		case irr::io::EAT_STRING:
-			attribs->setAttribute(property->GetName(), event.GetValue().GetString().c_str().AsChar());
-			break;
-		case irr::io::EAT_VECTOR3D:
-			attribs->setAttribute(property->GetName(), valueToVec3(event.GetValue()));
-			break;
-		case irr::io::EAT_VECTOR2D:
-			attribs->setAttribute(property->GetName(), valueToVec2(event.GetValue()));
-			break;
-		case irr::io::EAT_COLOR:
-			attribs->setAttribute(property->GetName(), valueToColor(event.GetValue()));
-			break;
-		case irr::io::EAT_FLOAT:
-			attribs->setAttribute(property->GetName(), (float)event.GetValue().GetDouble());
-			break;
-		case irr::io::EAT_BOOL:
-			attribs->setAttribute(property->GetName(), event.GetValue().GetBool());
-			break;
-		case irr::io::EAT_INT:
-			attribs->setAttribute(property->GetName(), (int)event.GetValue().GetLong());
-			break;
+			PropertyClientData* clientData = static_cast<PropertyClientData*>(property->GetClientData());
+			m_Commands.Submit(new UpdateActorAttributeCommand(clientData->m_Type,
+				m_SceneNode->getName(), m_Map, this, property->GetName(), event.GetValue()));
 		}
+		else if (property->GetParent() && property->GetParent()->GetParent()->GetParent() == m_Components)
+		{			
+			PropertyClientData* clientData = static_cast<PropertyClientData*>(property->GetClientData());
+
+			// look up the component type
+			irr::scene::ESCENE_NODE_ANIMATOR_TYPE type = irr::scene::ESNAT_UNKNOWN;
+			const irr::scene::ISceneNodeAnimatorList animators = m_SceneNode->getAnimators();
+			for (irr::scene::ISceneNodeAnimatorList::ConstIterator i = animators.begin();
+				i != animators.end(); ++i)
+			{
+				irr::u32 factoryCount = m_Map->GetSceneMgr()->getRegisteredSceneNodeAnimatorFactoryCount();
+				for (irr::u32 j = 0; j < factoryCount; ++j)
+				{
+					irr::scene::ISceneNodeAnimatorFactory* factory = m_Map->GetSceneMgr()->getSceneNodeAnimatorFactory(j);
+					if (factory->getCreateableSceneNodeAnimatorTypeName((*i)->getType()) == property->GetParent()->GetParent()->GetName())
+					{
+						type = (*i)->getType();
+						break;
+					}
+				}
+			}
+
+			wxString name = property->GetName();
+			wxString value = event.GetValue().GetString();
+			switch (clientData->m_Type)
+			{
+			case irr::io::EAT_VECTOR3D:
+			case irr::io::EAT_VECTOR2D:
+			{
+				// we need to get the composed value from the parent property
+				wxPGProperty* parent = property->GetParent();
+				wxStringProperty* parentValue = dynamic_cast<wxStringProperty*>(parent);
+				value = parentValue->GetValue().GetString();
+				name = parentValue->GetName();
+			} break;
+			}
+
+			m_Commands.Submit(new UpdateComponentAttributeCommand(clientData->m_Type,
+				m_SceneNode->getName(), m_Map, this, type, name, value));
+		}
+	}
+}
+
+void PropertyPanel::AddAttribute(wxPGProperty* parent, const irr::io::E_ATTRIBUTE_TYPE& type, 
+	const wxString& name, const wxString& value)
+{
+	int index = parent->GetChildCount();
+	switch (type)
+	{
+	case irr::io::EAT_INT:
+	{
+		wxIntProperty* property = new wxIntProperty(name);
+		property->SetValueFromString(value);
+		property->SetClientData(new PropertyClientData(type));
+		m_Properties->Insert(parent, index, property);
+	} break;
+	case irr::io::EAT_FLOAT:
+	{
+		wxFloatProperty* property = new wxFloatProperty(name);
+		property->SetValueFromString(value);
+		property->SetClientData(new PropertyClientData(type));
+		m_Properties->Insert(parent, index, property);
+	} break;
+	case irr::io::EAT_STRING:
+	{
+		wxStringProperty* property = new wxStringProperty(name, wxPG_LABEL, value);
+		property->SetClientData(new PropertyClientData(type));
+		m_Properties->Insert(parent, index, property);
+	} break;
+	case irr::io::EAT_VECTOR3D:
+	{
+		irr::core::vector3df vec = valueToVec3(value);
+
+		wxPGProperty* property = m_Properties->Insert(parent, index, 
+			new wxStringProperty(name, wxPG_LABEL, "<composed>"));
+		PropertyClientData* clientData = new PropertyClientData(type);
+		property->SetClientData(clientData);
+		wxFloatProperty* x = new wxFloatProperty(_("x"), wxPG_LABEL, vec.X);
+		x->SetClientData(clientData);
+		wxFloatProperty* y = new wxFloatProperty(_("y"), wxPG_LABEL, vec.Y);
+		y->SetClientData(clientData);
+		wxFloatProperty* z = new wxFloatProperty(_("z"), wxPG_LABEL, vec.Z);
+		z->SetClientData(clientData);
+		m_Properties->AppendIn(property, x);
+		m_Properties->AppendIn(property, y);
+		m_Properties->AppendIn(property, z);
+		m_Properties->Collapse(property);
+	} break;
+	case irr::io::EAT_VECTOR2D:
+	{
+		irr::core::vector2df vec = valueToVec2(value);
+
+		wxPGProperty* property = m_Properties->Insert(parent, index, 
+			new wxStringProperty(name, wxPG_LABEL, "<composed>"));
+		PropertyClientData* clientData = new PropertyClientData(type);
+		property->SetClientData(clientData);
+		wxFloatProperty* x = new wxFloatProperty(_("x"), wxPG_LABEL, vec.X);
+		x->SetClientData(clientData);
+		wxFloatProperty* y = new wxFloatProperty(_("y"), wxPG_LABEL, vec.Y);
+		y->SetClientData(clientData);
+		m_Properties->AppendIn(property, x);
+		m_Properties->AppendIn(property, y);
+		m_Properties->Collapse(property);
+	} break;
 	}
 }

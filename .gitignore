@@ -3,6 +3,7 @@
 .vscode/
 
 *.exe
+!doxygen.exe
 *.dll
 *.exp
 *.lib
@@ -18,6 +19,22 @@ bin/ManifoldEditor*
 *.mpk
 !editor.mpk
 *.irr
+*.prefab
+*.actor
+*.component
+
+actors/
+!actors/.dummy
+components/
+!components/.dummy
+maps/
+!maps/.dummy
+models/
+!models/.dummy
+sounds/
+!sounds/.dummy
+textures/
+!textures/.dummy
 
 # specific
 msw/obj

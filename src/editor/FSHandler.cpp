@@ -6,6 +6,7 @@
 
 #include "FSHandler.hpp"
 
+#include <wx/config.h>
 #include <wx/filename.h>
 #include <wx/log.h>
 
@@ -84,6 +85,32 @@ irr::io::IReadFile* IrrFSHandler::createAndOpenFile(const irr::io::path& filenam
 		wxString zipFile = filePath.BeforeLast(wxT(':'));
 		wxString fileName = filePath.AfterLast(wxT(':'));
 		filePath = zipFile + wxT("#zip:") + fileName;
+	}
+	else
+	{
+		// work through known search paths
+		wxString entry;
+		long cookie;
+		wxConfigBase* config = wxConfigBase::Get();
+		wxConfigPathChanger paths(config, wxT("/Paths/"));
+		if (config->GetFirstEntry(entry, cookie))
+		{
+			do
+			{
+				wxString path = config->Read(entry);
+				if (path.IsEmpty())
+					continue;
+
+				wxString baseFileName = filePath.AfterLast(wxT('/'));
+				wxString fullPath = path + wxT('/') + baseFileName;
+				wxFileName fn(fullPath);
+				if (fn.FileExists())
+				{
+					filePath = fullPath;
+					break;
+				}
+			} while (config->GetNextEntry(entry, cookie));
+		}
 	}
 
 	wxFSFile* f = fileSystem.OpenFile(filePath);

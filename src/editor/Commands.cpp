@@ -5,6 +5,8 @@
 */
 
 #include "Commands.hpp"
+#include "Component.hpp"
+#include "Convert.hpp"
 #include "../extend/CylinderSceneNode.hpp"
 #include "../extend/PathSceneNode.hpp"
 #include "../extend/PlaneSceneNode.hpp"
@@ -30,9 +32,15 @@ AddNodeCommand::AddNodeCommand(TOOLID toolId,
 	}
 	else if (m_ToolId == TOOL_MESH)
 	{
-		m_Mesh = name;
-		wxFileName meshName(name.AfterLast(wxT(':')));
-		m_Name = m_Map->NextName(meshName.GetName());
+		m_Mesh = name; // store the XML definition
+		wxStringInputStream stream(m_Mesh);
+		wxXmlDocument doc(stream);
+		wxXmlNode* root = doc.GetRoot();
+		if (root)
+		{
+			wxString meshName = root->GetAttribute("name");
+			m_Name = m_Map->NextName(meshName);
+		}
 	}
 }
 
@@ -232,64 +240,138 @@ bool AddNodeCommand::Do(void)
 		if (!actorDefinition)
 			return false;
 
+		// get the mesh and texture
+		wxString mesh;
+		wxString texture;
+		std::map<irr::core::stringc, irr::io::IAttributes*> components;
+
 		// figure out the type of actor
-		wxString type = actorDefinition->GetAttribute("Type");
+		wxString type = actorDefinition->GetAttribute("type");
 		if (type.CmpNoCase("Model") == 0)
 		{
-			// A Model needs to have at least 2 attributes
-			wxXmlNode* attributes = actorDefinition->GetChildren();
-			if (!actorDefinition)
+			wxXmlNode* child = actorDefinition->GetChildren();
+			if (!child)
 				return false;
 
-			// get the mesh and texture
-			wxString mesh;
-			wxString texture;
-
-			while (attributes)
+			while (child)
 			{
-				if (attributes->GetName().CmpNoCase("String") == 0)
+				if (child->GetName().CmpNoCase("properties") == 0)
 				{
-					if (attributes->HasAttribute("Mesh"))
-						mesh = attributes->GetAttribute("Mesh");
-					else if (attributes->HasAttribute("Texture"))
-						texture = attributes->GetAttribute("Texture");
-					else // add the attribute as user data
+					wxXmlNode* property = child->GetChildren();
+					while (property)
 					{
-						wxXmlAttribute* attribute = attributes->GetAttributes();
-						if (attribute) // we only have one attribute
+						if (property->GetName().CmpNoCase("string") == 0)
 						{
-							wxString key = attribute->GetName();
-							wxString value = attribute->GetValue();
-							attribs->addString(key.c_str().AsChar(), value.c_str().AsChar());
+							if (property->HasAttribute("Mesh"))
+								mesh = property->GetAttribute("Mesh");
+							else if (property->HasAttribute("Texture"))
+								texture = property->GetAttribute("Texture");
+							else // add the attribute as user data
+							{
+								wxXmlAttribute* attribute = property->GetAttributes();
+								if (attribute) // we only have one attribute
+								{
+									wxString key = attribute->GetName();
+									wxString value = attribute->GetValue();
+									attribs->addString(key.c_str().AsChar(), value.c_str().AsChar());
+								}
+							}
 						}
+						else if (property->GetName().CmpNoCase("float") == 0)
+						{
+							wxXmlAttribute* attribute = property->GetAttributes();
+							if (attribute) // we only have one attribute
+							{
+								wxString key = attribute->GetName();
+								wxString value = attribute->GetValue();
+								attribs->addFloat(key.c_str().AsChar(), valueToFloat(value));
+							}
+						}
+						else if (property->GetName().CmpNoCase("int") == 0)
+						{
+							wxXmlAttribute* attribute = property->GetAttributes();
+							if (attribute) // we only have one attribute
+							{
+								wxString key = attribute->GetName();
+								wxString value = attribute->GetValue();
+								attribs->addInt(key.c_str().AsChar(), valueToInt(value));
+							}
+						}
+						else if (property->GetName().CmpNoCase("vec2") == 0)
+						{
+							wxXmlAttribute* attribute = property->GetAttributes();
+							if (attribute) // we only have one attribute
+							{
+								wxString key = attribute->GetName();
+								wxString value = attribute->GetValue();
+								attribs->addVector2d(key.c_str().AsChar(), valueToVec2(value));
+							}
+						}
+						else if (property->GetName().CmpNoCase("vec3") == 0)
+						{
+							wxXmlAttribute* attribute = property->GetAttributes();
+							if (attribute) // we only have one attribute
+							{
+								wxString key = attribute->GetName();
+								wxString value = attribute->GetValue();
+								attribs->addVector3d(key.c_str().AsChar(), valueToVec3(value));
+							}
+						}
+						
+						property = property->GetNext();
 					}
 				}
-				else if (attributes->GetName().CmpNoCase("Float") == 0)
+				else if (child->GetName().CmpNoCase("components") == 0)
 				{
-					wxXmlAttribute* attribute = attributes->GetAttributes();
-					if (attribute) // we only have one attribute
+					wxXmlNode* component = child->GetChildren();
+					while (component)
 					{
-						wxString key = attribute->GetName();
-						wxString value = attribute->GetValue();
-						double f = 0;
-						if (value.ToDouble(&f))
-							attribs->addFloat(key.c_str().AsChar(), f);
-					}
-				}
-				else if (attributes->GetName().CmpNoCase("Integer") == 0)
-				{
-					wxXmlAttribute* attribute = attributes->GetAttributes();
-					if (attribute) // we only have one attribute
-					{
-						wxString key = attribute->GetName();
-						wxString value = attribute->GetValue();
-						int i = 0;
-						if (value.ToInt(&i))
-							attribs->addInt(key.c_str().AsChar(), i);
-					}
-				}
+						if (component->GetName().CmpNoCase("component") == 0)
+						{
+							wxXmlAttribute* attribute = component->GetAttributes();
+							wxString componentName = attribute->GetValue();
+							
+							// create attributes
+							irr::io::IAttributes* attributes = m_SceneMgr->getFileSystem()->createEmptyAttributes(nullptr);
+							wxXmlNode* property = component->GetChildren();
+							while (property)
+							{
+								wxXmlAttribute* attribute = property->GetAttributes();
+								wxString key = attribute->GetName();
+								wxString value = attribute->GetValue();
+								if (property->GetName().CmpNoCase("int") == 0)
+								{
+									attributes->addInt(key.c_str(), valueToInt(value));
+								}
+								else if (property->GetName().CmpNoCase("float") == 0)
+								{
+									attributes->addFloat(key.c_str(), valueToFloat(value));
+								}
+								else if (property->GetName().CmpNoCase("string") == 0)
+								{
+									attributes->addString(key.c_str().AsChar(), value.c_str().AsChar());
+								}
+								else if (property->GetName().CmpNoCase("vec2") == 0)
+								{
+									attributes->addVector2d(key.c_str(), valueToVec2(value));
+								}
+								else if (property->GetName().CmpNoCase("vec3") == 0)
+								{
+									attributes->addVector3d(key.c_str(), valueToVec3(value));
+								}
 
-				attributes = attributes->GetNext();
+								property = property->GetNext();
+							}
+
+							// add to the component map
+							components[componentName.c_str().AsChar()] = attributes;
+						}
+
+						component = component->GetNext();
+					}
+				}
+			
+				child = child->GetNext();
 			}
 
 			// add a model actor
@@ -312,7 +394,32 @@ bool AddNodeCommand::Do(void)
 				model->setMaterialTexture(0, m_SceneMgr->getVideoDriver()->getTexture(
 			 		"editor.mpk:textures/default.jpg"));
 
-			// @TODO: Add the attributes to the scene node's UserData
+			if (!model->getTriangleSelector())
+			{
+				irr::scene::ITriangleSelector* selector = m_SceneMgr->createTriangleSelector(
+					model->getMesh(), model);
+				if (selector)
+				{
+					model->setTriangleSelector(selector);
+					selector->drop();
+				}
+			}
+
+			// add the components
+			for (std::map<irr::core::stringc, irr::io::IAttributes*>::iterator it = components.begin();
+				it != components.end(); ++it)
+			{
+				// irr::scene::ISceneNodeAnimator* anim = new Component(
+				// 	ComponentFactory::HashComponentName(it->first.c_str()), it->second);
+				irr::scene::ISceneNodeAnimator* anim = m_SceneMgr->createSceneNodeAnimator(it->first.c_str());
+				if (anim)
+				{
+					anim->deserializeAttributes(it->second);
+					model->addAnimator(anim);
+				}
+
+				it->second->drop();
+			}
 		}
 
 		isActor = true;
@@ -330,10 +437,69 @@ bool AddNodeCommand::Do(void)
 	} break;
 	case TOOL_MESH:
 	{
-		node = m_SceneMgr->addMeshSceneNode(
-			m_SceneMgr->getMesh(m_Mesh.c_str().AsChar()), m_MapRoot, NID_PICKABLE,
-			m_Position, irr::core::vector3df(0, 0, 0), irr::core::vector3df(1, 1, 1),
-			true);
+		wxString model;
+		wxString textures[4];
+
+		wxStringInputStream stream(m_Mesh);
+		wxXmlDocument doc(stream);
+		wxXmlNode* root = doc.GetRoot();
+		if (root)
+		{
+			wxXmlNode* entry = root->GetChildren();
+			while (entry)
+			{
+				wxString entryName = entry->GetName();
+				if (entryName.CmpNoCase(wxT("mesh")) == 0)
+					model = entry->GetNodeContent();
+				else if (entryName.CmpNoCase(wxT("texture0")) == 0)
+					textures[0] = entry->GetNodeContent();
+				else if (entryName.CmpNoCase(wxT("texture1")) == 0)
+					textures[1] = entry->GetNodeContent();
+				else if (entryName.CmpNoCase(wxT("texture2")) == 0)
+					textures[2] = entry->GetNodeContent();
+				else if (entryName.CmpNoCase(wxT("texture3")) == 0)
+					textures[3] = entry->GetNodeContent();
+
+				entry = entry->GetNext();
+			}
+		}
+
+		if (!model.IsEmpty())
+		{
+			irr::scene::IMeshSceneNode* node = m_SceneMgr->addMeshSceneNode(
+				m_SceneMgr->getMesh(model.c_str().AsChar()), m_MapRoot, NID_PICKABLE,
+				m_Position, irr::core::vector3df(0, 0, 0), irr::core::vector3df(1, 1, 1),
+				true);
+
+			node->setName(m_Name.c_str());
+			node->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+
+			if (!textures[0].IsEmpty())
+				node->setMaterialTexture(0, m_SceneMgr->getVideoDriver()->getTexture(
+					textures[0].c_str().AsChar()));
+			if (!textures[1].IsEmpty())
+				node->setMaterialTexture(1, m_SceneMgr->getVideoDriver()->getTexture(
+					textures[1].c_str().AsChar()));
+			if (!textures[2].IsEmpty())
+				node->setMaterialTexture(2, m_SceneMgr->getVideoDriver()->getTexture(
+					textures[2].c_str().AsChar()));
+			if (!textures[3].IsEmpty())
+				node->setMaterialTexture(3, m_SceneMgr->getVideoDriver()->getTexture(
+					textures[3].c_str().AsChar()));
+
+			if (!node->getTriangleSelector())
+			{
+				irr::scene::ITriangleSelector* selector = m_SceneMgr->createTriangleSelector(
+					node->getMesh(), node);
+				if (selector)
+				{
+					node->setTriangleSelector(selector);
+					selector->drop();
+				}
+			}
+		}
+		else
+			return false;
 
 		isGeometry = true;
 	} break;
@@ -422,6 +588,7 @@ bool AddNodeCommand::Undo(void)
 	case TOOL_LIGHT:
 	case TOOL_PLAYERSTART:
 	case TOOL_PATHNODE:
+	case TOOL_ACTOR:
 		m_ExplorerPanel->RemoveActor(m_Name);
 		break;
 	default:
@@ -1330,4 +1497,277 @@ wxString UpdatePathNameCommand::GetName(void) const
 bool UpdatePathNameCommand::Undo(void)
 {
 	return Do(); // the undo details are captured during Do()
+}
+
+UpdatePathLinkCommand::UpdatePathLinkCommand(irr::scene::ISceneManager* sceneMgr,
+	const wxString& pathNode, const wxString& prevNode, const wxString& nextNode,
+	bool updatePrev, bool updateNext)
+	: m_SceneMgr(sceneMgr), m_PathNode(pathNode), m_PrevNode(prevNode),
+	  m_NextNode(nextNode), m_UpdatePrev(updatePrev), m_UpdateNext(updateNext)
+{
+}
+
+UpdatePathLinkCommand::~UpdatePathLinkCommand(void)
+{
+}
+
+bool UpdatePathLinkCommand::CanUndo(void) const
+{
+	return true;
+}
+
+bool UpdatePathLinkCommand::Do(void)
+{
+	PathSceneNode* pathNode = dynamic_cast<PathSceneNode*>(
+		m_SceneMgr->getSceneNodeFromName(m_PathNode.c_str().AsChar()));
+	if (pathNode == nullptr)
+		return false;
+
+	if (m_UpdatePrev)
+	{
+		wxString oldPrevNode;
+		PathSceneNode* prevNode = pathNode->getPrev();
+		if (prevNode)
+			oldPrevNode = prevNode->getName();
+
+		if (m_PrevNode.CompareTo(wxT("--none--")) == 0)
+		{
+			pathNode->setPrev(nullptr);
+			pathNode->drawLink(false);
+		}
+		else
+		{
+			if (m_PrevNode.empty())
+			{
+				pathNode->setPrev(nullptr);
+				pathNode->drawLink(false);
+			}
+			else
+			{
+				PathSceneNode* prevNode = dynamic_cast<PathSceneNode*>(
+					m_SceneMgr->getSceneNodeFromName(m_PrevNode.c_str().AsChar()));
+				if (prevNode)
+				{
+					pathNode->setPrev(prevNode);
+					pathNode->setPathName(prevNode->getPathName());
+					pathNode->drawLink(true);
+				}
+			}
+		}
+
+		m_PrevNode = oldPrevNode; // store the old prev node for undo
+	}
+	else if (m_UpdateNext)
+	{
+		wxString oldNextNode;
+		PathSceneNode* nextNode = pathNode->getNext();
+		if (nextNode)
+			oldNextNode = nextNode->getName();
+
+		if (m_NextNode.CompareTo(wxT("--none--")) == 0)
+		{
+			pathNode->setNext(nullptr);
+			pathNode->drawLink(false);
+		}
+		else
+		{
+			if (m_NextNode.empty())
+			{
+				pathNode->setNext(nullptr);
+				pathNode->drawLink(false);
+			}
+			else
+			{
+				PathSceneNode* nextNode = dynamic_cast<PathSceneNode*>(
+					m_SceneMgr->getSceneNodeFromName(m_NextNode.c_str().AsChar()));
+				if (nextNode)
+				{
+					pathNode->setNext(nextNode);
+					pathNode->setPathName(nextNode->getPathName());
+					pathNode->drawLink(true);
+				}
+			}
+		}
+
+		m_NextNode = oldNextNode; // store the old next node for undo
+	}
+	else
+		return false;
+
+	return true;
+}
+
+wxString UpdatePathLinkCommand::GetName(void) const
+{
+	return wxString::Format(_("Update path link: %s"), m_PathNode.c_str().AsChar());
+}
+
+bool UpdatePathLinkCommand::Undo(void)
+{
+	return Do();
+}
+
+UpdateActorAttributeCommand::UpdateActorAttributeCommand(irr::io::E_ATTRIBUTE_TYPE type,
+	const wxString& sceneNode, std::shared_ptr<Map>& map,
+	PropertyPanel* propertyPanel, const wxString& attribute, const wxString& value)
+	: m_Type(type), m_SceneNode(sceneNode), m_Map(map), m_PropertyPanel(propertyPanel),
+	  m_Attribute(attribute), m_Value(value)
+{
+}
+
+UpdateActorAttributeCommand::~UpdateActorAttributeCommand(void)
+{
+}
+
+bool UpdateActorAttributeCommand::CanUndo(void) const
+{
+	return true;
+}
+
+bool UpdateActorAttributeCommand::Do(void)
+{
+	irr::io::IAttributes* attribs = m_Map->GetAttributes(m_SceneNode.c_str().AsChar());
+	wxString oldValue = attribs->getAttributeAsString(m_Attribute.c_str().AsChar()).c_str();
+
+	switch (m_Type)
+	{
+	case irr::io::EAT_STRING:
+		attribs->setAttribute(m_Attribute.c_str().AsChar(), m_Value.c_str().AsChar());
+		break;
+	case irr::io::EAT_VECTOR3D:
+		attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToVec3(m_Value));
+		break;
+	case irr::io::EAT_VECTOR2D:
+		attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToVec2(m_Value));
+		break;
+	case irr::io::EAT_COLOR:
+		attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToColor(m_Value));
+		break;
+	case irr::io::EAT_FLOAT:
+		attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToFloat(m_Value));
+		break;
+	case irr::io::EAT_BOOL:
+		attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToBool(m_Value));
+		break;
+	case irr::io::EAT_INT:
+		attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToInt(m_Value));
+		break;
+	}
+	
+	m_Value = oldValue; // for undo
+
+	return true;
+}
+
+wxString UpdateActorAttributeCommand::GetName(void) const
+{
+	return wxString::Format(_("Update actor attribute: %s"), m_Attribute.c_str().AsChar());
+}
+
+bool UpdateActorAttributeCommand::Undo(void)
+{
+	if (Do())
+	{
+		m_PropertyPanel->Refresh();
+		return true;
+	}
+
+	return false;
+}
+
+UpdateComponentAttributeCommand::UpdateComponentAttributeCommand(irr::io::E_ATTRIBUTE_TYPE type,
+	const wxString& sceneNode, std::shared_ptr<Map>& map,
+	PropertyPanel* propertyPanel, const irr::scene::ESCENE_NODE_ANIMATOR_TYPE& component,
+	const wxString& attribute, const wxString& value)
+	: m_Type(type), m_SceneNode(sceneNode), m_Map(map),
+	  m_PropertyPanel(propertyPanel), m_Component(component),
+	  m_Attribute(attribute), m_Value(value)
+{
+}
+
+UpdateComponentAttributeCommand::~UpdateComponentAttributeCommand(void)
+{
+}
+
+bool UpdateComponentAttributeCommand::CanUndo(void) const
+{
+	return true;
+}
+
+bool UpdateComponentAttributeCommand::Do(void)
+{
+	// look up the scene node
+	irr::scene::ISceneNode* node = m_Map->GetSceneMgr()->getSceneNodeFromName(
+		m_SceneNode.c_str().AsChar());
+	if (node == nullptr)
+		return false;
+
+	// look up the animator
+	irr::io::IAttributes* attribs = m_Map->GetSceneMgr()->getFileSystem()->createEmptyAttributes();
+	const irr::scene::ISceneNodeAnimatorList animators = node->getAnimators();
+	for (irr::scene::ISceneNodeAnimatorList::ConstIterator i = animators.begin();
+		i != animators.end(); ++i)
+	{
+		if ((*i)->getType() == m_Component)
+		{
+			(*i)->serializeAttributes(attribs);
+
+			wxString oldValue;
+
+			switch (m_Type)
+			{
+			case irr::io::EAT_INT:
+				oldValue = wxString::Format("%d", attribs->getAttributeAsInt(m_Attribute.c_str().AsChar()));
+				attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToInt(m_Value));
+				break;
+			case irr::io::EAT_FLOAT:
+				oldValue = wxString::Format("%g", attribs->getAttributeAsFloat(m_Attribute.c_str().AsChar()));
+				attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToFloat(m_Value));
+				break;
+			case irr::io::EAT_STRING:
+				oldValue = wxString::Format("%s", attribs->getAttributeAsString(m_Attribute.c_str().AsChar()).c_str());
+				attribs->setAttribute(m_Attribute.c_str().AsChar(), m_Value.c_str().AsChar());
+				break;
+			case irr::io::EAT_VECTOR3D:
+			{
+				irr::core::vector3df vec = attribs->getAttributeAsVector3d(m_Attribute.c_str().AsChar());
+				oldValue = wxString::Format("%g; %g; %g", vec.X, vec.Y, vec.Z);
+				attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToVec3(m_Value));
+			} break;
+			case irr::io::EAT_VECTOR2D:
+			{
+				irr::core::vector2df vec = attribs->getAttributeAsVector2d(m_Attribute.c_str().AsChar());
+				oldValue = wxString::Format("%g; %g", vec.X, vec.Y);
+				attribs->setAttribute(m_Attribute.c_str().AsChar(), valueToVec2(m_Value));
+			} break;
+			}
+
+			// write the attribute back to the animator
+			(*i)->deserializeAttributes(attribs);
+
+			m_Value = oldValue; // for undo
+			break;
+		}
+	}
+
+	attribs->drop();
+
+	return true;
+}
+
+wxString UpdateComponentAttributeCommand::GetName(void) const
+{
+	return wxString::Format(_("Update attribute: %s"), 
+		m_Attribute.c_str().AsChar());
+}
+
+bool UpdateComponentAttributeCommand::Undo(void)
+{
+	if (Do())
+	{
+		m_PropertyPanel->Refresh();
+		return true;
+	}
+
+	return false;
 }

@@ -122,8 +122,21 @@ void Map::Save(const wxFileName& fileName)
 				i != animator.end(); ++i)
 			{
 				irr::io::IAttributes* animAttribs = m_SceneMgr->getFileSystem()->createEmptyAttributes();
-				(*i)->serializeAttributes(animAttribs, &opts);
-				animators.push_back(animAttribs);
+				irr::scene::ESCENE_NODE_ANIMATOR_TYPE type = (*i)->getType();
+				irr::u32 factoryCount = m_SceneMgr->getRegisteredSceneNodeAnimatorFactoryCount();
+				for (irr::u32 j = 0; j < factoryCount; ++j)
+				{
+					irr::scene::ISceneNodeAnimatorFactory* factory = m_SceneMgr->getSceneNodeAnimatorFactory(j);
+					const irr::c8* name = factory->getCreateableSceneNodeAnimatorTypeName(type);
+					if (name)
+					{
+						(*i)->serializeAttributes(animAttribs, &opts);
+						if (!animAttribs->existsAttribute("Type"))
+							animAttribs->setAttribute("Type", name);
+						animators.push_back(animAttribs);
+						break;
+					}
+				}
 			}
 
 			irr::io::IAttributes* userData = GetAttributes((*entity).first);

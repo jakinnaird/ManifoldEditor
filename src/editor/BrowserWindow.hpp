@@ -64,6 +64,9 @@ protected:
 	typedef std::list<wxString> packagelist_t;
 	static packagelist_t ms_Packages;
 
+	typedef std::list<wxString> definitionlist_t;
+	static definitionlist_t ms_Definitions;
+
 private:
 	wxNotebook* m_Notebook;     ///< Notebook for page management
 	ActorBrowser* m_Actors;     ///< Actor browser panel
@@ -127,10 +130,22 @@ public:
 	const wxString& GetMesh(void);
 
 	/**
+	 * @brief Get the definition of a mesh
+	 * @return The mesh definition
+	 */
+	const wxString& GetMeshDefinition(void);
+
+	/**
 	 * @brief Add a package to the browser
 	 * @param path The path to the package
 	 */
 	static void AddPackage(const wxString& path);
+
+	/**
+	 * @brief Add a definition to the browser
+	 * @param path The path to the definition
+	 */
+	static void AddDefinition(const wxString& path);
 
 private:
 	/**
@@ -138,6 +153,12 @@ private:
 	 * @param event The close event
 	 */
 	void OnCloseEvent(wxCloseEvent& event);
+
+	/**
+	 * @brief Handle page change events
+	 * @param event The page change event
+	 */
+	void OnPageChanged(wxNotebookEvent& event);
 };
 
 class TextureBrowser : public wxPanel
@@ -152,10 +173,7 @@ private:
 	};
 
 private:
-	typedef std::vector<TextureEntry> textures_t;
-	textures_t m_Textures;
-
-	typedef std::map<wxString, textures_t::iterator> texturemap_t;
+	typedef std::map<wxString, TextureEntry> texturemap_t;
 	texturemap_t m_TextureMap;
 
 private:
@@ -181,6 +199,8 @@ private:
 	
 	void OnToolAdd(wxCommandEvent& event);
 	void OnToolOpen(wxCommandEvent& event);
+	void OnToolRefresh(wxCommandEvent& event);
+
 	void OnPaint(wxPaintEvent& event);
 	void OnMouse(wxMouseEvent& event);
 	void AddImage(const wxString& path, wxImage& image,
@@ -195,7 +215,9 @@ private:
 	wxTreeItemId m_Root;
 	wxArrayString m_Categories;
 
-	wxFileName m_DefinitionFile;
+	typedef std::map<wxTreeItemId, wxString> itempath_t;
+	itempath_t m_ItemPaths;
+	// wxArrayString m_DefinitionFiles;
 
 	wxString m_Selected;
 
@@ -208,17 +230,18 @@ public:
 
 private:
 	bool LoadPackage(const wxString& path, bool preload = false);
+	bool LoadDefinition(const wxString& path, bool preload = false);
 
 	void OnToolAdd(wxCommandEvent& event);
 	void OnToolOpen(wxCommandEvent& event);
 	void OnToolSave(wxCommandEvent& event);
-	void OnToolSaveAs(wxCommandEvent& event);
+	void OnToolRefresh(wxCommandEvent& event);
 
 	void OnItemActivate(wxTreeEvent& event);
 	void OnItemSelected(wxTreeEvent& event);
 
 private:
-	void AddActor(wxXmlNode* actor);
+	void AddActor(const wxXmlDocument& definition, const wxString& sourceFile, bool fromPackage);
 	wxTreeItemId FindItem(const wxString& name, wxTreeItemId& start);
 };
 
@@ -255,6 +278,7 @@ private:
 	void OnToolOpen(wxCommandEvent& event);
 	void OnToolPlay(wxCommandEvent& event);
 	void OnToolStop(wxCommandEvent& event);
+	void OnToolRefresh(wxCommandEvent& event);
 
 	void OnItemActivate(wxListEvent& event);
 };
@@ -262,32 +286,34 @@ private:
 class MeshBrowser : public wxPanel
 {
 private:
-private:
 	enum
 	{
-		COL_PATH = 0,
-		COL_TYPE,
+		COL_NAME = 0,
 		COL_PACKAGE
 	};
 
 	wxListView* m_List;
 
-	typedef std::map<long, wxString> itempath_t;
-	itempath_t m_ItemPaths;
+	typedef std::map<long, wxString> itemdefinition_t;
+	itemdefinition_t m_ItemDefinitions;
 
-	wxString m_Selected;
+	wxString m_Selection;
+	wxString m_Definition;
 
 public:
 	MeshBrowser(wxWindow* parent);
 	~MeshBrowser(void);
 
 	const wxString& GetSelection(void);
+	const wxString& GetDefinition(void);
 
 private:
 	bool LoadPackage(const wxString& path, bool preload = false);
+	bool LoadDefinition(const wxString& path, bool preload = false);
 
 	void OnToolAdd(wxCommandEvent& event);
 	void OnToolOpen(wxCommandEvent& event);
+	void OnToolRefresh(wxCommandEvent& event);
 
 	void OnItemSelected(wxListEvent& event);
 };
