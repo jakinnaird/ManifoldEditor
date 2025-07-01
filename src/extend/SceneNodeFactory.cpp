@@ -9,6 +9,7 @@
 #include "PlaneSceneNode.hpp"
 #include "PlayerStartNode.hpp"
 #include "PathSceneNode.hpp"
+#include "../editor/UpdatableTerrainSceneNode.hpp"
 
 SceneNodeFactory::SceneNodeFactory(irr::scene::ISceneManager* sceneMgr)
 	: m_SceneMgr(sceneMgr)
@@ -21,6 +22,9 @@ SceneNodeFactory::SceneNodeFactory(irr::scene::ISceneManager* sceneMgr)
 	m_SupportedSceneNodeTypes.push_back(SceneNodeType((irr::scene::ESCENE_NODE_TYPE)ESNT_PLANE, "plane"));
 	m_SupportedSceneNodeTypes.push_back(SceneNodeType((irr::scene::ESCENE_NODE_TYPE)ESNT_PLAYERSTART, "playerstart"));
 	m_SupportedSceneNodeTypes.push_back(SceneNodeType((irr::scene::ESCENE_NODE_TYPE)ESNT_PATHNODE, "pathnode"));
+	
+	// override the terrain node type
+	m_SupportedSceneNodeTypes.push_back(SceneNodeType(irr::scene::ESNT_TERRAIN, "terrain"));
 }
 
 SceneNodeFactory::~SceneNodeFactory(void)
@@ -49,6 +53,19 @@ irr::scene::ISceneNode* SceneNodeFactory::addSceneNode(irr::scene::ESCENE_NODE_T
 		break;
 	case ESNT_PATHNODE:
 		node = new PathSceneNode(parent, m_SceneMgr, -1);
+		break;
+	// case ESNT_UPDATABLE_TERRAIN:
+	case irr::scene::ESNT_TERRAIN:
+		{
+			UpdatableTerrainSceneNode* terrain = new UpdatableTerrainSceneNode(
+				parent, m_SceneMgr, m_SceneMgr->getFileSystem(), -1, 5, irr::scene::ETPS_17);
+			// Create a default 257x257 heightmap (good size for terrain)
+			terrain->createHeightmap(257, 0.0f);
+			// Set some basic material properties
+			terrain->getMaterial(0).setTexture(0, m_SceneMgr->getVideoDriver()->getTexture("editor.mpk:textures/default.jpg"));
+			terrain->getMaterial(0).Lighting = false;
+			node = terrain;
+		}
 		break;
 	}
 

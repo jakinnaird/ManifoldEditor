@@ -13,6 +13,7 @@
 // - PlaneSceneNode
 // - PlayerStartNode
 // - PathSceneNode
+// - UpdatableTerrainSceneNode
 
 class SceneNodeFactory : public irr::scene::ISceneNodeFactory
 {

@@ -151,6 +151,8 @@
     <ClCompile Include="..\src\editor\Entry.cpp" />
     <ClCompile Include="..\src\editor\ExplorerPanel.cpp" />
     <ClCompile Include="..\src\editor\FSHandler.cpp" />
+    <ClCompile Include="..\src\editor\HeightBrush.cpp" />
+    <ClCompile Include="..\src\editor\HeightmapData.cpp" />
     <ClCompile Include="..\src\editor\MainWindow.cpp" />
     <ClCompile Include="..\src\editor\Map.cpp" />
     <ClCompile Include="..\src\editor\MapEditor.cpp" />
@@ -163,6 +165,11 @@
     <ClCompile Include="..\src\editor\PropertyPanel.cpp" />
     <ClCompile Include="..\src\editor\ScriptEditor.cpp" />
     <ClCompile Include="..\src\editor\Serialize.cpp" />
+    <ClCompile Include="..\src\editor\SmoothBrush.cpp" />
+    <ClCompile Include="..\src\editor\TerrainBrush.cpp" />
+    <ClCompile Include="..\src\editor\TerrainEditor.cpp" />
+    <ClCompile Include="..\src\editor\TerrainToolbar.cpp" />
+    <ClCompile Include="..\src\editor\UpdatableTerrainSceneNode.cpp" />
     <ClCompile Include="..\src\editor\ViewPanel.cpp" />
     <ClCompile Include="..\src\extend\CylinderSceneNode.cpp" />
     <ClCompile Include="..\src\extend\PathSceneNode.cpp" />
@@ -183,6 +190,8 @@
     <ClInclude Include="..\src\editor\Editor.hpp" />
     <ClInclude Include="..\src\editor\ExplorerPanel.hpp" />
     <ClInclude Include="..\src\editor\FSHandler.hpp" />
+    <ClInclude Include="..\src\editor\HeightBrush.hpp" />
+    <ClInclude Include="..\src\editor\HeightmapData.hpp" />
     <ClInclude Include="..\src\editor\MainWindow.hpp" />
     <ClInclude Include="..\src\editor\Map.hpp" />
     <ClInclude Include="..\src\editor\MapEditor.hpp" />
@@ -195,6 +204,11 @@
     <ClInclude Include="..\src\editor\PropertyPanel.hpp" />
     <ClInclude Include="..\src\editor\ScriptEditor.hpp" />
     <ClInclude Include="..\src\editor\Serialize.hpp" />
+    <ClInclude Include="..\src\editor\SmoothBrush.hpp" />
+    <ClInclude Include="..\src\editor\TerrainBrush.hpp" />
+    <ClInclude Include="..\src\editor\TerrainEditor.hpp" />
+    <ClInclude Include="..\src\editor\TerrainToolbar.hpp" />
+    <ClInclude Include="..\src\editor\UpdatableTerrainSceneNode.hpp" />
     <ClInclude Include="..\src\editor\ViewPanel.hpp" />
     <ClInclude Include="..\src\extend\CylinderSceneNode.hpp" />
     <ClInclude Include="..\src\extend\PathSceneNode.hpp" />

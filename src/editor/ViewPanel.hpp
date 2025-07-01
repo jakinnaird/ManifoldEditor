@@ -11,6 +11,9 @@
 #include "ExplorerPanel.hpp"
 #include "Map.hpp"
 #include "PropertyPanel.hpp"
+#include "TerrainEditor.hpp"
+#include "TerrainToolbar.hpp"
+#include "UpdatableTerrainSceneNode.hpp"
 
 #include <wx/cmdproc.h>
 #include <wx/cursor.h>
@@ -94,6 +97,12 @@ private:
 	wxPoint m_LastMousePos;                        ///< Last mouse position
 	bool m_TranslatingSelection;                   ///< Selection translation flag
 
+	// Terrain editing
+	TerrainEditor* m_TerrainEditor;                ///< Terrain editing system
+	TerrainToolbar* m_TerrainToolbar;              ///< Terrain editing toolbar
+	bool m_TerrainEditingMode;                     ///< Terrain editing mode flag
+	UpdatableTerrainSceneNode* m_ActiveTerrain;    ///< Currently active terrain for editing
+
 public:
 	/**
 	 * @brief Constructor for the ViewPanel class
@@ -163,6 +172,52 @@ public:
 	 * @brief End free look mode
 	 */
 	void EndFreeLook(void);
+
+	/**
+	 * @brief Set terrain editing mode
+	 * @param enabled Whether to enable terrain editing mode
+	 */
+	void SetTerrainEditingMode(bool enabled);
+
+	/**
+	 * @brief Check if terrain editing mode is active
+	 * @return True if terrain editing mode is enabled
+	 */
+	bool IsTerrainEditingMode() const { return m_TerrainEditingMode; }
+
+	/**
+	 * @brief Get the terrain editor
+	 * @return Pointer to the terrain editor
+	 */
+	TerrainEditor* GetTerrainEditor() const { return m_TerrainEditor; }
+
+	/**
+	 * @brief Show the terrain editing toolbar
+	 */
+	void ShowTerrainToolbar();
+
+	/**
+	 * @brief Hide the terrain editing toolbar
+	 */
+	void HideTerrainToolbar();
+
+	/**
+	 * @brief Check if terrain toolbar is visible
+	 * @return True if toolbar is shown
+	 */
+	bool IsTerrainToolbarVisible() const;
+
+	/**
+	 * @brief Get the active terrain for editing
+	 * @return Pointer to the active terrain node
+	 */
+	UpdatableTerrainSceneNode* GetActiveTerrain() const { return m_ActiveTerrain; }
+
+	/**
+	 * @brief Get the render device
+	 * @return Pointer to the Irrlicht render device
+	 */
+	irr::IrrlichtDevice* GetRenderDevice() const { return m_RenderDevice; }
 
 private:
 	/**

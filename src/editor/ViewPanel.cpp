@@ -76,7 +76,8 @@ ViewPanel::ViewPanel(wxWindow* parent, wxCommandProcessor& cmdProc,
 	  m_PropertyPanel(propertyPanel), m_Init(false), m_ActiveView(VIEW_3D), 
 	  m_FreeLook(false), m_RenderDevice(nullptr),
 	  m_EditorRoot(nullptr), m_MapRoot(nullptr),
-	  m_Camera(nullptr), m_TranslatingSelection(false)
+	  m_Camera(nullptr), m_TranslatingSelection(false),
+	  m_TerrainEditor(nullptr), m_TerrainToolbar(nullptr), m_TerrainEditingMode(false), m_ActiveTerrain(nullptr)
 {
 	m_ExplorerPanel->SetViewPanel(this);
 
@@ -126,6 +127,19 @@ ViewPanel::~ViewPanel(void)
 	delete m_Cursor[CURSOR_ROTATE];
 
 	m_RefreshTimer.Stop();
+
+	if (m_TerrainEditor)
+	{
+		m_TerrainEditor->shutdown();
+		delete m_TerrainEditor;
+		m_TerrainEditor = nullptr;
+	}
+
+	if (m_TerrainToolbar)
+	{
+		m_TerrainToolbar->Destroy();
+		m_TerrainToolbar = nullptr;
+	}
 
 	if (m_RenderDevice)
 	{
@@ -209,6 +223,38 @@ void ViewPanel::AddToSelection(irr::scene::ISceneNode* node, bool append)
 			m_PropertyPanel->Clear();
 		else
 			m_PropertyPanel->SetSceneNode(node);
+		
+		// Check if selected node is an UpdatableTerrainSceneNode
+		if (m_Selection.size() == 1)
+		{
+			if (node->getType() == irr::scene::ESNT_TERRAIN)
+			{
+				UpdatableTerrainSceneNode* terrain = dynamic_cast<UpdatableTerrainSceneNode*>(node);
+				if (terrain)
+				{
+					// Auto-bind terrain to editor if terrain editing mode is enabled
+					if (m_TerrainEditor && m_TerrainEditor->isEnabled())
+					{
+						m_ActiveTerrain = terrain;
+						m_TerrainEditor->setTerrain(terrain);
+					}
+					else
+					{
+						// Store for potential later use
+						m_ActiveTerrain = terrain;
+					}
+				}
+			}
+			else
+			{
+				// Clear active terrain if non-terrain node is selected
+				m_ActiveTerrain = nullptr;
+				if (m_TerrainEditor)
+				{
+					m_TerrainEditor->setTerrain(nullptr);
+				}
+			}
+		}
 	}
 
 	UpdateSelectionBoundingBox();
@@ -244,6 +290,13 @@ void ViewPanel::ClearSelection(void)
 		i != m_Selection.end(); i = m_Selection.erase(i))
 	{
 		(*i)->setDebugDataVisible(irr::scene::EDS_OFF);
+	}
+	
+	// Clear active terrain when selection is cleared
+	m_ActiveTerrain = nullptr;
+	if (m_TerrainEditor)
+	{
+		m_TerrainEditor->setTerrain(nullptr);
 	}
 }
 
@@ -312,7 +365,16 @@ void ViewPanel::OnTimer(wxTimerEvent& event)
 	if (IsShownOnScreen())
 	{
 		if (m_RenderDevice)
+		{
 			m_RenderDevice->getTimer()->tick();
+			
+			// Update terrain editor
+			if (m_TerrainEditor && m_TerrainEditor->isEnabled())
+			{
+				irr::f32 deltaTime = m_RenderDevice->getTimer()->getTime() / 1000.0f;
+				m_TerrainEditor->update(deltaTime);
+			}
+		}
 
 		Refresh(false); // Generate paint event without erasing the background
 	}
@@ -501,6 +563,26 @@ void ViewPanel::OnResize(wxSizeEvent& event)
 		// Add the render device to the browser window
 		m_Browser->SetRenderDevice(m_RenderDevice);
 
+		// Initialize terrain editor
+		m_TerrainEditor = new TerrainEditor(
+			m_RenderDevice->getVideoDriver(),
+			m_RenderDevice->getSceneManager(),
+			m_RenderDevice->getTimer()
+		);
+		m_TerrainEditor->initialize();
+		m_TerrainEditor->setActiveCamera(m_View[VIEW_TOP]); // Default to TOP view
+		m_TerrainEditor->setEnabled(false); // Start disabled
+
+		// Initialize terrain toolbar
+		m_TerrainToolbar = new TerrainToolbar(this, this);
+		if (m_TerrainToolbar)
+		{
+			m_TerrainToolbar->SetTerrainEditor(m_TerrainEditor);
+			// Set up bidirectional reference so terrain editor can update toolbar
+			m_TerrainEditor->setToolbar(m_TerrainToolbar);
+			m_TerrainToolbar->Hide(); // Start hidden
+		}
+
 		m_RefreshTimer.Start(40); // start refreshing the display, 25FPS
 		m_Init = true;
 		PostSizeEvent();
@@ -558,6 +640,13 @@ void ViewPanel::OnPaint(wxPaintEvent& event)
 		m_RenderDevice->getSceneManager()->setActiveCamera(m_View[VIEW_TOP]);
 		m_RenderDevice->getGUIEnvironment()->drawAll();
 		m_RenderDevice->getSceneManager()->drawAll();
+		
+		// Render terrain editor brush preview (only in TOP view)
+		if (m_TerrainEditor && m_TerrainEditor->isEnabled() && m_ActiveView == VIEW_TOP)
+		{
+			m_TerrainEditor->render();
+		}
+		
 		m_Grid[VIEW_TOP]->setVisible(false);
 		m_Label[VIEW_TOP]->setVisible(false);
 
@@ -593,6 +682,9 @@ void ViewPanel::OnPaint(wxPaintEvent& event)
 		m_RenderDevice->getSceneManager()->setActiveCamera(m_View[VIEW_3D]);
 		m_RenderDevice->getGUIEnvironment()->drawAll();
 		m_RenderDevice->getSceneManager()->drawAll();
+		
+		// Note: Terrain editor brush preview will be rendered in TOP view instead
+		
 		m_Grid[VIEW_3D]->setVisible(false);
 		m_Label[VIEW_3D]->setVisible(false);
 		m_Camera->setVisible(true);
@@ -691,6 +783,42 @@ void ViewPanel::OnMouse(wxMouseEvent& event)
 
 	irrEvent.MouseInput.X = cursor.X;
 	irrEvent.MouseInput.Y = cursor.Y;
+
+	// Handle terrain editing if enabled and we're in TOP view
+	if (m_TerrainEditor && m_TerrainEditor->isEnabled() && 
+		m_ActiveView == VIEW_TOP && m_ActiveTerrain)
+	{
+		// Ensure terrain editor has the correct camera reference
+		m_TerrainEditor->setActiveCamera(m_View[VIEW_TOP]);
+		
+		// Set the correct viewport for the TOP view so getRayFromScreenCoordinates works correctly
+		const wxSize& size = GetSize() * GetContentScaleFactor();
+		m_RenderDevice->getVideoDriver()->setViewPort(irr::core::recti(
+			size.x / 2, 0, size.x, size.y / 2));
+		m_RenderDevice->getSceneManager()->setActiveCamera(m_View[VIEW_TOP]);
+		
+		// Calculate coordinates relative to the TOP viewport (top-right quarter)
+		irr::s32 viewportMouseX = ((event.GetX() - (size.GetWidth() / 2.0f)) / (irr::f32)(size.GetWidth() / 2)) * (size.GetWidth() / 2);
+		irr::s32 viewportMouseY = (event.GetY() / (irr::f32)(size.GetHeight() / 2)) * (size.GetHeight() / 2);
+		
+		// Create a transformed mouse event with viewport-relative coordinates
+		wxMouseEvent transformedEvent = event;
+		transformedEvent.m_x = viewportMouseX;
+		transformedEvent.m_y = viewportMouseY;
+		
+		bool terrainHandled = m_TerrainEditor->onMouseEvent(transformedEvent);
+		
+		// Restore full viewport
+		m_RenderDevice->getVideoDriver()->setViewPort(irr::core::recti(
+			0, 0, size.x, size.y));
+		
+		if (terrainHandled)
+		{
+			// Terrain editor handled the event, skip normal processing
+			event.Skip();
+			return;
+		}
+	}
 
 	// generate a ray for the mouse cursor
 	irr::scene::ISceneCollisionManager* colMgr =
@@ -871,6 +999,17 @@ void ViewPanel::OnMouse(wxMouseEvent& event)
 
 void ViewPanel::OnKey(wxKeyEvent& event)
 {
+	// Handle terrain editing keys first if enabled
+	if (m_TerrainEditor && m_TerrainEditor->isEnabled())
+	{
+		if (m_TerrainEditor->onKeyEvent(event))
+		{
+			// Terrain editor handled the event
+			event.Skip();
+			return;
+		}
+	}
+
 	if (event.GetEventType() == wxEVT_KEY_DOWN)
 	{
 	}
@@ -882,10 +1021,30 @@ void ViewPanel::OnKey(wxKeyEvent& event)
 			if (m_FreeLook)
 				EndFreeLook();
 			else
+			{
 				ClearSelection();
+				// Exit terrain editing mode on Escape
+				if (m_TerrainEditingMode)
+					SetTerrainEditingMode(false);
+			}
 			break;
 		case WXK_DELETE:
 			DeleteSelection();
+			break;
+		case 'T':
+		case 't':
+			// Toggle terrain editing mode with 'T' key
+			if (m_ActiveTerrain) // Only allow if terrain is available
+			{
+				SetTerrainEditingMode(!m_TerrainEditingMode);
+				wxLogMessage(m_TerrainEditingMode ? 
+					_("Terrain editing mode enabled - use TOP view (top-right) to edit") : 
+					_("Terrain editing mode disabled"));
+			}
+			else
+			{
+				wxLogMessage(_("Select a terrain node to enable terrain editing"));
+			}
 			break;
 		}
 	}
@@ -1014,19 +1173,17 @@ void ViewPanel::OnToolPlane(wxCommandEvent& event)
 
 void ViewPanel::OnToolTerrain(wxCommandEvent& event)
 {
-	wxLogMessage(wxT("Not implemented"));
-
-	// @TODO
 	// get the 3D camera and create the item directly in front of it
-	//irr::core::vector3df pos = m_View[VIEW_3D]->getAbsolutePosition();
-	//irr::core::vector3df target = m_View[VIEW_3D]->getTarget();
-	//irr::core::line3df ray(pos, target);
+	irr::core::vector3df pos = m_View[VIEW_3D]->getAbsolutePosition();
+	irr::core::vector3df target = m_View[VIEW_3D]->getTarget();
+	irr::core::line3df ray(pos, target);
 
-	//irr::core::vector3df location = ray.getMiddle();
+	irr::core::vector3df location = ray.getMiddle();
+	location.Y = m_Grid[VIEW_3D]->getPosition().Y + 0.5f;
 
-	//m_Commands.Submit(new AddNodeCommand(TOOL_TERRAIN, m_ExplorerPanel,
-	//	m_RenderDevice->getSceneManager(), m_MapRoot, 
-	//  m_Map, location, m_Map->NextName("terrain")));
+	m_Commands.Submit(new AddNodeCommand(TOOL_TERRAIN, m_ExplorerPanel,
+		m_RenderDevice->getSceneManager(), m_MapRoot, 
+		m_Map, location, m_Map->NextName("terrain")));
 }
 
 void ViewPanel::OnToolSkybox(wxCommandEvent& event)
@@ -1096,16 +1253,6 @@ void ViewPanel::OnToolMesh(wxCommandEvent& event)
 	irr::core::line3df ray(pos, target);
 
 	irr::core::vector3df location = ray.getMiddle();
-	// wxString meshName(m_Browser->GetMesh());
-
-	// // build the package path
-	// wxFileName packageName(meshName.BeforeLast(wxT(':')));
-	// // remove #zip if present
-	// if (packageName.GetExt().Contains(wxT("#zip")))
-	// 	packageName.SetExt(wxT("zip"));
-
-	// wxString meshFile = meshName.AfterLast(wxT(':'));
-	// wxString meshPath = packageName.GetFullName() + wxT(":") + meshFile;
 
 	m_Commands.Submit(new AddNodeCommand(TOOL_MESH, 
 		m_ExplorerPanel, m_RenderDevice->getSceneManager(), m_MapRoot,
@@ -1199,4 +1346,71 @@ void ViewPanel::OnMenuSetTexture(wxCommandEvent& event)
 
 	m_Commands.Submit(new ChangeTextureCommand(m_RenderDevice->getSceneManager(),
 		selection, 1, 1, m_Browser->GetTexture()));
+}
+
+void ViewPanel::SetTerrainEditingMode(bool enabled)
+{
+	m_TerrainEditingMode = enabled;
+	
+	if (m_TerrainEditor)
+	{
+		m_TerrainEditor->setEnabled(enabled);
+		
+		// Update camera reference when mode changes
+		if (enabled)
+		{
+			m_TerrainEditor->setActiveCamera(m_View[VIEW_TOP]); // Always use TOP view
+			
+			// Auto-detect terrain if one is selected
+			if (m_Selection.size() == 1)
+			{
+				UpdatableTerrainSceneNode* terrain = dynamic_cast<UpdatableTerrainSceneNode*>(m_Selection.front());
+				if (terrain)
+				{
+					m_ActiveTerrain = terrain;
+					m_TerrainEditor->setTerrain(terrain);
+				}
+			}
+		}
+		else
+		{
+			// Clear active terrain when exiting terrain mode
+			m_ActiveTerrain = nullptr;
+			m_TerrainEditor->setTerrain(nullptr);
+		}
+	}
+
+	// Update the toolbar if it exists
+	if (m_TerrainToolbar)
+	{
+		m_TerrainToolbar->UpdateFromTerrainEditor();
+		
+		if (enabled)
+			ShowTerrainToolbar();
+		else
+			HideTerrainToolbar();
+	}
+}
+
+void ViewPanel::ShowTerrainToolbar()
+{
+	if (m_TerrainToolbar)
+	{
+		m_TerrainToolbar->Show();
+		m_TerrainToolbar->Raise();
+		
+		// Force a refresh to make sure the window appears
+		m_TerrainToolbar->Update();
+	}
+}
+
+void ViewPanel::HideTerrainToolbar()
+{
+	if (m_TerrainToolbar)
+		m_TerrainToolbar->Hide();
+}
+
+bool ViewPanel::IsTerrainToolbarVisible() const
+{
+	return m_TerrainToolbar && m_TerrainToolbar->IsShown();
 }

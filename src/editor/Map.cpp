@@ -14,7 +14,9 @@
 #include "../extend/PlaneSceneNode.hpp"
 #include "../extend/PlayerStartNode.hpp"
 #include "../extend/PathSceneNode.hpp"
+#include "UpdatableTerrainSceneNode.hpp"
 
+#include <wx/config.h>
 #include <wx/log.h>
 #include <wx/stdpaths.h>
 

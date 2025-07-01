@@ -81,11 +81,8 @@ void PropertyPanel::Refresh(void)
 
 	if (m_Properties->GetRoot()->GetChildCount() == 0) // first time
 	{
-		irr::io::SAttributeReadWriteOptions opts;
-		opts.Filename = ".";
-		opts.Flags = irr::io::EARWF_USE_RELATIVE_PATHS;
 		irr::io::IAttributes* attribs = m_SceneNode->getSceneManager()->getFileSystem()->createEmptyAttributes(nullptr);
-		m_SceneNode->serializeAttributes(attribs, &opts);
+		m_SceneNode->serializeAttributes(attribs, nullptr);
 
 		m_GeneralProperties = new wxPropertyCategory(_("General"));
 		m_CustomProperties = new wxPropertyCategory(_("Custom"));
@@ -177,6 +174,17 @@ void PropertyPanel::Refresh(void)
 			m_Properties->AppendIn(sizeProp, new wxFloatProperty(_("x"), wxPG_LABEL, _tileSize.Width));
 			m_Properties->AppendIn(sizeProp, new wxFloatProperty(_("y"), wxPG_LABEL, _tileSize.Height));
 			m_Properties->Collapse(sizeProp);
+		} break;
+		case irr::scene::ESNT_TERRAIN:
+		{
+			wxFloatProperty* terrainSize = new wxFloatProperty(_("Terrain Size"), wxPG_LABEL,
+				attribs->getAttributeAsInt("TerrainSize"));
+			terrainSize->ChangeFlag(wxPG_PROP_READONLY, true);
+			m_Properties->AppendIn(m_GeneralProperties, terrainSize);
+			wxStringProperty* heightmap = new wxStringProperty(_("Heightmap"), wxPG_LABEL,
+				attribs->getAttributeAsString("Heightmap").c_str());
+			heightmap->ChangeFlag(wxPG_PROP_READONLY, true);
+			m_Properties->AppendIn(m_GeneralProperties, heightmap);
 		} break;
 		case irr::scene::ESNT_LIGHT:
 		{
@@ -307,7 +315,7 @@ void PropertyPanel::Refresh(void)
 			
 			// make sure we get the relative path for the textures
 			irr::io::IAttributes* matAttribs = m_SceneNode->getSceneManager()->getVideoDriver()
-				->createAttributesFromMaterial(mat, &opts);
+				->createAttributesFromMaterial(mat, nullptr);
 
 			// textures
 			for (irr::u32 j = 0; j < irr::video::MATERIAL_MAX_TEXTURES; ++j)
@@ -484,7 +492,7 @@ void PropertyPanel::Refresh(void)
 				const irr::c8* name = factory->getCreateableSceneNodeAnimatorTypeName(type);
 				if (name)
 				{
-					(*i)->serializeAttributes(animAttribs, &opts);
+					(*i)->serializeAttributes(animAttribs, nullptr);
 					// if (!animAttribs->existsAttribute("Type"))
 					// 	animAttribs->setAttribute("Type", name);
 

@@ -10,6 +10,7 @@
 #include "../extend/CylinderSceneNode.hpp"
 #include "../extend/PathSceneNode.hpp"
 #include "../extend/PlaneSceneNode.hpp"
+#include "UpdatableTerrainSceneNode.hpp"
 
 #include <wx/log.h>
 #include <wx/sstream.h>
@@ -131,24 +132,42 @@ bool AddNodeCommand::Do(void)
 	} break;
 	case TOOL_TERRAIN:
 	{
-		//terrain = m_SceneMgr->addTerrainSceneNode("", m_Parent, NID_PICKABLE,
-		//	irr::core::vector3df(), irr::core::vector3df(), irr::core::vector3df(1),
-		//	irr::video::SColor(255, 255, 255, 255), 5, irr::scene::ETPS_17, 0, true);
+		// Create an updatable terrain scene node
+		UpdatableTerrainSceneNode* terrain = new UpdatableTerrainSceneNode(
+			m_MapRoot, m_SceneMgr, m_SceneMgr->getFileSystem(), NID_PICKABLE, 
+			5, irr::scene::ETPS_17, m_Position);
 
-		//irr::video::IImage* baseHeightmap = m_SceneMgr->getVideoDriver()->createImage(
-		//	irr::video::ECF_R8G8B8, irr::core::dimension2du(512, 512));
-		//irr::video::IImage* baseTexture = m_SceneMgr->getVideoDriver()->createImageFromFile(
-		//	"../resource/textures/default.jpg");
-		//mesh = m_SceneMgr->getGeometryCreator()->createTerrainMesh(baseTexture,
-		//	baseHeightmap, irr::core::dimension2df(1, 1), 255, m_SceneMgr->getVideoDriver(),
-		//	irr::core::dimension2du(1, 1));
-		//attribs->addString("meshType", "terrain");
+		// Create a default 129x129 heightmap (fits in 16-bit indices)
+		// terrain->createHeightmap(129, 0.0f);
+
+		// create a 257x257 heightmap (fits in 32-bit indices)
+		terrain->createHeightmap(257, 0.0f);
+		terrain->setName(m_Name.c_str());
+
+		terrain->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+		terrain->setMaterialTexture(0, m_SceneMgr->getVideoDriver()->getTexture(
+			"editor.mpk:textures/terrain.jpg"));
+
+		// Create triangle selector for collision
+		irr::scene::ITriangleSelector* selector = m_SceneMgr->createTriangleSelectorFromBoundingBox(
+			terrain);
+		if (selector)
+		{
+			// this selector needs to be recreated when the terrain is updated
+			terrain->setTriangleSelector(selector);
+			selector->drop();
+		}
+
+		// terrain->drop(); // Scene manager will hold reference
 		isGeometry = true;
 	} break;
 	case TOOL_SKYBOX:
 	{
 		skybox = m_SceneMgr->addSkyDomeSceneNode(m_SceneMgr->getVideoDriver()->getTexture(
 			"editor.mpk:textures/skybox.png"), 32, 16, 0.9f, 2, 1000, m_MapRoot, NID_PICKABLE);
+		skybox->setName(m_Name.c_str());
+		skybox->setMaterialFlag(irr::video::EMF_LIGHTING, false);
+
 		isGeometry = true;
 	} break;
 	case TOOL_PLAYERSTART:
@@ -533,33 +552,6 @@ bool AddNodeCommand::Do(void)
 				selector->drop();
 			}
 		}
-	}
-
-	//if (terrain)
-	//{
-	//	terrain->setName(m_Name.c_str());
-	//	terrain->setMaterialFlag(irr::video::EMF_LIGHTING, false);
-	//	terrain->setMaterialTexture(0, m_SceneMgr->getVideoDriver()->getTexture(
-	//		"../resource/textures/default.jpg"));
-
-	//	if (!terrain->getTriangleSelector())
-	//	{
-	//		irr::scene::ITriangleSelector* selector = m_SceneMgr->createTriangleSelector(
-	//			terrain->getMesh(), terrain);
-	//		terrain->setTriangleSelector(selector);
-	//		selector->drop();
-	//	}
-
-	//	irr::io::IAttributes* attribs = m_SceneMgr->getFileSystem()->createEmptyAttributes(nullptr);
-	//	m_Map->AddEntity(m_Name, attribs);
-	//	m_ExplorerPanel->AddGeometry(m_Name);
-	//	return true;
-	//}
-
-	if (skybox)
-	{
-		skybox->setName(m_Name.c_str());
-		skybox->setMaterialFlag(irr::video::EMF_LIGHTING, false);
 	}
 
 	m_Map->AddEntity(m_Name, attribs);
