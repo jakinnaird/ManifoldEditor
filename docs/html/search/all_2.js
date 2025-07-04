@@ -4,15 +4,16 @@ var searchData=
   ['changecolorcommand_19',['ChangeColorCommand',['../classChangeColorCommand.html',1,'']]],
   ['changetexturecommand_20',['ChangeTextureCommand',['../classChangeTextureCommand.html',1,'']]],
   ['cleanpackage_21',['CleanPackage',['../classProjectExplorer.html#aaa4115dd0152bdd3bd8f0edd4075aa54',1,'ProjectExplorer']]],
-  ['clear_22',['Clear',['../classExplorerPanel.html#a9b5a91a3d195223a6cabb6eb15d3704c',1,'ExplorerPanel::Clear()'],['../classProjectExplorer.html#afc20b5f41679a50a6e6e94c824e5d873',1,'ProjectExplorer::Clear()'],['../classPropertyPanel.html#afccac98351d32cf80397b39f891853c8',1,'PropertyPanel::Clear()']]],
+  ['clear_22',['Clear',['../classExplorerPanel.html#a9b5a91a3d195223a6cabb6eb15d3704c',1,'ExplorerPanel::Clear()'],['../classPropertyPanel.html#afccac98351d32cf80397b39f891853c8',1,'PropertyPanel::Clear()'],['../classProjectExplorer.html#afc20b5f41679a50a6e6e94c824e5d873',1,'ProjectExplorer::Clear()']]],
   ['clearselection_23',['ClearSelection',['../classViewPanel.html#afeb2b2ab28834c5242faf795f82e837e',1,'ViewPanel']]],
   ['clone_24',['clone',['../classCGridSceneNode.html#ab04ec6ab610b46a5b06c8ee7710f4199',1,'CGridSceneNode']]],
   ['commoninfo_25',['CommonInfo',['../structCommonInfo.html',1,'']]],
   ['component_26',['Component',['../classComponent.html',1,'']]],
   ['componentfactory_27',['ComponentFactory',['../classComponentFactory.html',1,'']]],
   ['componenttype_28',['ComponentType',['../structComponentFactory_1_1ComponentType.html',1,'ComponentFactory']]],
-  ['cscenenodeanimatorcameraortho_29',['CSceneNodeAnimatorCameraOrtho',['../classirr_1_1scene_1_1CSceneNodeAnimatorCameraOrtho.html',1,'irr::scene']]],
-  ['cursor_5fmove_30',['CURSOR_MOVE',['../classViewPanel.html#a7ae0b6a255fc7f2a4116108befb161dea2191914c352812d97a173785c0459140',1,'ViewPanel']]],
-  ['cursor_5frotate_31',['CURSOR_ROTATE',['../classViewPanel.html#a7ae0b6a255fc7f2a4116108befb161dea01bbce5d6b31834ee7727067b07c72b8',1,'ViewPanel']]],
-  ['cursors_32',['CURSORS',['../classViewPanel.html#a7ae0b6a255fc7f2a4116108befb161de',1,'ViewPanel']]]
+  ['createcontrols_29',['CreateControls',['../classTerrainToolbar.html#aeff7eb4a074e7dafbd88a801eb493b65',1,'TerrainToolbar']]],
+  ['cscenenodeanimatorcameraortho_30',['CSceneNodeAnimatorCameraOrtho',['../classirr_1_1scene_1_1CSceneNodeAnimatorCameraOrtho.html',1,'irr::scene']]],
+  ['cursor_5fmove_31',['CURSOR_MOVE',['../classViewPanel.html#a7ae0b6a255fc7f2a4116108befb161dea2191914c352812d97a173785c0459140',1,'ViewPanel']]],
+  ['cursor_5frotate_32',['CURSOR_ROTATE',['../classViewPanel.html#a7ae0b6a255fc7f2a4116108befb161dea01bbce5d6b31834ee7727067b07c72b8',1,'ViewPanel']]],
+  ['cursors_33',['CURSORS',['../classViewPanel.html#a7ae0b6a255fc7f2a4116108befb161de',1,'ViewPanel']]]
 ];

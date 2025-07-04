@@ -47,10 +47,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "AudioSystem_8hpp_source.html",
-"classDeleteNodeCommand.html#a7bfdde7278d221485ab91788833aad6a",
-"classMeshBrowser.html#ac2d498934a0b5199aae45a7dce615430",
-"classScriptEditor.html#a8ae8932063749b6a115c025d5651d7be",
-"classirr_1_1scene_1_1CSceneNodeAnimatorCameraOrtho.html"
+"classComponent.html#adcd5f84f20d583a72d6bd06ad7f3bd1f",
+"classMainWindow.html#a760e4512e443e4fc8156af4f453323e3",
+"classPropertyType.html#a31b1b5fd88a0e54ab72495e340621822aeaf2839462ba0463125ce526b356a7c6",
+"classTerrainEditor.html#a3e677973b47a077fcfb8833349c598ce",
+"classUpdatePathLinkCommand.html#a21d4b80b061e1110009985ef9d18d4ae",
+"structLanguageInfo.html#a1692af065aab71e6435fcdcf5a6d9c7c"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

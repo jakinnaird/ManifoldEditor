@@ -130,12 +130,9 @@ const wxString &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>GetSe
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-types"></a>
 Private Types</h2></td></tr>
-<tr class="memitem:a2091d7b14993ac4721878354a8b2b7e2"><td class="memItemLeft" align="right" valign="top"><a id="a2091d7b14993ac4721878354a8b2b7e2"></a>
-typedef std::vector&lt; <a class="el" href="structTextureBrowser_1_1TextureEntry.html">TextureEntry</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>textures_t</b></td></tr>
-<tr class="separator:a2091d7b14993ac4721878354a8b2b7e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1366dc99c2da2a6018ea1010cbd01416"><td class="memItemLeft" align="right" valign="top"><a id="a1366dc99c2da2a6018ea1010cbd01416"></a>
-typedef std::map&lt; wxString, textures_t::iterator &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>texturemap_t</b></td></tr>
-<tr class="separator:a1366dc99c2da2a6018ea1010cbd01416"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0ec218a7ec6ff4793ca958caffd17859"><td class="memItemLeft" align="right" valign="top"><a id="a0ec218a7ec6ff4793ca958caffd17859"></a>
+typedef std::map&lt; wxString, <a class="el" href="structTextureBrowser_1_1TextureEntry.html">TextureEntry</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>texturemap_t</b></td></tr>
+<tr class="separator:a0ec218a7ec6ff4793ca958caffd17859"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-methods"></a>
 Private Member Functions</h2></td></tr>
@@ -151,6 +148,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>OnToolAdd</b> (wxComm
 <tr class="memitem:a433de182d59bcfdbbb97c0b5c640fcbf"><td class="memItemLeft" align="right" valign="top"><a id="a433de182d59bcfdbbb97c0b5c640fcbf"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>OnToolOpen</b> (wxCommandEvent &amp;event)</td></tr>
 <tr class="separator:a433de182d59bcfdbbb97c0b5c640fcbf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a61049b5e57b653475ce21aaf204a31fd"><td class="memItemLeft" align="right" valign="top"><a id="a61049b5e57b653475ce21aaf204a31fd"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>OnToolRefresh</b> (wxCommandEvent &amp;event)</td></tr>
+<tr class="separator:a61049b5e57b653475ce21aaf204a31fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae6af384fedaf3f2cda9a7d96bcbded77"><td class="memItemLeft" align="right" valign="top"><a id="ae6af384fedaf3f2cda9a7d96bcbded77"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>OnPaint</b> (wxPaintEvent &amp;event)</td></tr>
 <tr class="separator:ae6af384fedaf3f2cda9a7d96bcbded77"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -166,9 +166,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>ScrollTo</b> (const w
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pri-attribs"></a>
 Private Attributes</h2></td></tr>
-<tr class="memitem:ab1dd954575dae9d1f03a21e503b0464d"><td class="memItemLeft" align="right" valign="top"><a id="ab1dd954575dae9d1f03a21e503b0464d"></a>
-textures_t&#160;</td><td class="memItemRight" valign="bottom"><b>m_Textures</b></td></tr>
-<tr class="separator:ab1dd954575dae9d1f03a21e503b0464d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a33cce971760c10a4ccdc3231e0183bfe"><td class="memItemLeft" align="right" valign="top"><a id="a33cce971760c10a4ccdc3231e0183bfe"></a>
 texturemap_t&#160;</td><td class="memItemRight" valign="bottom"><b>m_TextureMap</b></td></tr>
 <tr class="separator:a33cce971760c10a4ccdc3231e0183bfe"><td class="memSeparator" colspan="2">&#160;</td></tr>

@@ -359,6 +359,12 @@ public:
 	void OnEditDelete(wxCommandEvent& event);
 
 	/**
+	 * @brief Handle terrain edit action
+	 * @param event The command event
+	 */
+	void OnMenuTerrainEdit(wxCommandEvent& event);
+
+	/**
 	 * @brief Handle align top action
 	 * @param event The command event
 	 */

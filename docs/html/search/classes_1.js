@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['browserwindow_333',['BrowserWindow',['../classBrowserWindow.html',1,'']]]
+  ['browserwindow_380',['BrowserWindow',['../classBrowserWindow.html',1,'']]]
 ];

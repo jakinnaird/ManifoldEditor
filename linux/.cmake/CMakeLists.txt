@@ -36,6 +36,8 @@ add_executable(ManifoldEditor
     ../../src/editor/Entry.cpp
     ../../src/editor/ExplorerPanel.cpp
     ../../src/editor/FSHandler.cpp
+    ../../src/editor/HeightBrush.cpp
+    ../../src/editor/HeightmapData.cpp
     ../../src/editor/MainWindow.cpp
     ../../src/editor/Map.cpp
     ../../src/editor/MapEditor.cpp
@@ -48,6 +50,11 @@ add_executable(ManifoldEditor
     ../../src/editor/PropertyPanel.cpp
     ../../src/editor/ScriptEditor.cpp
     ../../src/editor/Serialize.cpp
+    ../../src/editor/SmoothBrush.cpp
+    ../../src/editor/TerrainBrush.cpp
+    ../../src/editor/TerrainEditor.cpp
+    ../../src/editor/TerrainToolbar.cpp
+    ../../src/editor/UpdatableTerrainSceneNode.cpp
     ../../src/editor/ViewPanel.cpp
     ../../src/extend/CylinderSceneNode.cpp
     ../../src/extend/PathSceneNode.cpp

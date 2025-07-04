@@ -16,6 +16,7 @@ var classBrowserWindow =
     [ "GetMeshDefinition", "classBrowserWindow.html#afab853fa47b32e5bc489abf73559ec3b", null ],
     [ "GetTexture", "classBrowserWindow.html#a78759dc7d1ccbe601e33fbaf15c1a72a", null ],
     [ "OnCloseEvent", "classBrowserWindow.html#ad23a979e4ab9dbca899a118005bf3f6c", null ],
+    [ "OnPageChanged", "classBrowserWindow.html#af8f9b510e1f3084414143abe78681338", null ],
     [ "SetAudioSystem", "classBrowserWindow.html#a5fbac62027d217d691d24bd1cbf7f531", null ],
     [ "SetRenderDevice", "classBrowserWindow.html#ac07e5b9da133e3ae91cfdd813db5d66e", null ],
     [ "SwitchTo", "classBrowserWindow.html#aac66214baa4eb8b6300c03dddda62c19", null ],

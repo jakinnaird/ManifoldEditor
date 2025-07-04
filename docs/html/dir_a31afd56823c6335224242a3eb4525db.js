@@ -22,6 +22,8 @@ var dir_a31afd56823c6335224242a3eb4525db =
       [ "ExplorerPanel", "classExplorerPanel.html", "classExplorerPanel" ]
     ] ],
     [ "FSHandler.hpp", "FSHandler_8hpp_source.html", null ],
+    [ "HeightBrush.hpp", "HeightBrush_8hpp_source.html", null ],
+    [ "HeightmapData.hpp", "HeightmapData_8hpp_source.html", null ],
     [ "MainWindow.hpp", "MainWindow_8hpp.html", [
       [ "MainWindow", "classMainWindow.html", "classMainWindow" ]
     ] ],
@@ -47,6 +49,11 @@ var dir_a31afd56823c6335224242a3eb4525db =
     ] ],
     [ "ScriptEditor.hpp", "ScriptEditor_8hpp.html", "ScriptEditor_8hpp" ],
     [ "Serialize.hpp", "Serialize_8hpp_source.html", null ],
+    [ "SmoothBrush.hpp", "SmoothBrush_8hpp_source.html", null ],
+    [ "TerrainBrush.hpp", "TerrainBrush_8hpp_source.html", null ],
+    [ "TerrainEditor.hpp", "TerrainEditor_8hpp_source.html", null ],
+    [ "TerrainToolbar.hpp", "TerrainToolbar_8hpp.html", "TerrainToolbar_8hpp" ],
+    [ "UpdatableTerrainSceneNode.hpp", "UpdatableTerrainSceneNode_8hpp_source.html", null ],
     [ "ViewPanel.hpp", "ViewPanel_8hpp.html", [
       [ "ViewPanel", "classViewPanel.html", "classViewPanel" ]
     ] ]

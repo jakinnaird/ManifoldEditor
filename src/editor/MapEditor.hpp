@@ -61,6 +61,12 @@ public:
 	ViewPanel* GetViewPanel(void) { return m_ViewPanel; }
 
 	/**
+	 * @brief Get the edit menu
+	 * @return Pointer to the edit menu
+	 */
+	wxMenu* GetEditMenu(void) { return m_EditMenu; }
+
+	/**
 	 * @brief Handle play process termination
 	 */
 	void PlayProcessTerminated(void);

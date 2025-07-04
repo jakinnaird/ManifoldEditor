@@ -203,6 +203,9 @@ MapEditor::MapEditor(MainWindow* parent, wxMenu* editMenu,
     parent->Bind(wxEVT_MENU, &MainWindow::OnToolAction, parent, TOOL_PLAYMAP);
     Bind(wxEVT_MENU, &MapEditor::OnToolsPlayMap, this, TOOL_PLAYMAP);
 
+    parent->Bind(wxEVT_MENU, &MainWindow::OnToolAction, parent, MENU_TERRAINEDIT);
+    Bind(wxEVT_MENU, &ViewPanel::OnMenuTerrainEdit, m_ViewPanel, MENU_TERRAINEDIT);
+
     m_PlayMapProcess = nullptr;
 }
 

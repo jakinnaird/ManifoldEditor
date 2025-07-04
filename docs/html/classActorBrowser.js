@@ -13,6 +13,7 @@ var classActorBrowser =
     [ "OnItemSelected", "classActorBrowser.html#ab396cd7c7db84756ebcf2cff9e54ce7f", null ],
     [ "OnToolAdd", "classActorBrowser.html#af15c5447314403d6bc4f2cf1eb4fdc40", null ],
     [ "OnToolOpen", "classActorBrowser.html#afcaae97e769560cf7047a486cbf81346", null ],
+    [ "OnToolRefresh", "classActorBrowser.html#a9b14519d5329e7d79f580926fc290f8f", null ],
     [ "OnToolSave", "classActorBrowser.html#ad666066337f85ace4c63e7cd9c9ea02f", null ],
     [ "m_Categories", "classActorBrowser.html#a98cb2539d12734ad083802eadb0f9d70", null ],
     [ "m_ItemPaths", "classActorBrowser.html#a68814ea02303a61c2879b965a805ed5a", null ],

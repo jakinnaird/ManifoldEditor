@@ -6,6 +6,7 @@ var hierarchy =
     [ "std::enable_shared_from_this", null, [
       [ "Map", "classMap.html", null ]
     ] ],
+    [ "HeightmapData", "classHeightmapData.html", null ],
     [ "irr::IEventReceiver", null, [
       [ "IrrEventReceiver", "classIrrEventReceiver.html", null ],
       [ "IrrEventReceiver", "classIrrEventReceiver.html", null ]
@@ -30,6 +31,9 @@ var hierarchy =
     [ "ISerializerFactory", "classISerializerFactory.html", [
       [ "SerializerFactory< _save, _load >", "classSerializerFactory.html", null ]
     ] ],
+    [ "irr::scene::ITerrainSceneNode", null, [
+      [ "UpdatableTerrainSceneNode", "classUpdatableTerrainSceneNode.html", null ]
+    ] ],
     [ "irr::io::IWriteFile", null, [
       [ "StreamWriteFile", "classStreamWriteFile.html", null ]
     ] ],
@@ -45,6 +49,13 @@ var hierarchy =
     [ "CGridSceneNode::SGrid", "structCGridSceneNode_1_1SGrid.html", null ],
     [ "AudioSystem::StreamData", "structAudioSystem_1_1StreamData.html", null ],
     [ "StyleInfo", "structStyleInfo.html", null ],
+    [ "TerrainBrush", "classTerrainBrush.html", [
+      [ "HeightBrush", "classHeightBrush.html", null ],
+      [ "SmoothBrush", "classSmoothBrush.html", null ]
+    ] ],
+    [ "TerrainEditor", "classTerrainEditor.html", null ],
+    [ "UpdatableTerrainSceneNode::TerrainPatch", "structUpdatableTerrainSceneNode_1_1TerrainPatch.html", null ],
+    [ "TerrainEditor::TerrainSnapshot", "structTerrainEditor_1_1TerrainSnapshot.html", null ],
     [ "TextureBrowser::TextureEntry", "structTextureBrowser_1_1TextureEntry.html", null ],
     [ "wxApp", null, [
       [ "ManifoldEditor", "classManifoldEditor.html", null ]
@@ -85,7 +96,8 @@ var hierarchy =
       [ "MpkFSHandler", "classMpkFSHandler.html", null ]
     ] ],
     [ "wxFrame", null, [
-      [ "MainWindow", "classMainWindow.html", null ]
+      [ "MainWindow", "classMainWindow.html", null ],
+      [ "TerrainToolbar", "classTerrainToolbar.html", null ]
     ] ],
     [ "wxPanel", null, [
       [ "ActorBrowser", "classActorBrowser.html", null ],

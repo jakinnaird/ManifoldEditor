@@ -10,6 +10,7 @@ var classMeshBrowser =
     [ "OnItemSelected", "classMeshBrowser.html#abda01422789efd879d8b9a48ddf9e3f1", null ],
     [ "OnToolAdd", "classMeshBrowser.html#af1cf7d76d63355cc6143b7c4f278e863", null ],
     [ "OnToolOpen", "classMeshBrowser.html#a100b3fa3555a7d616379c6daf999af78", null ],
+    [ "OnToolRefresh", "classMeshBrowser.html#a997ee55d823b084e61366995bb5bace3", null ],
     [ "m_Definition", "classMeshBrowser.html#a04f72cb93da1977009b2243706f9b54b", null ],
     [ "m_ItemDefinitions", "classMeshBrowser.html#a8c2a3588fc7d3f6e1d7f3307fa8f6321", null ],
     [ "m_List", "classMeshBrowser.html#a38affc01db22b3e37eedd13febed2acd", null ],

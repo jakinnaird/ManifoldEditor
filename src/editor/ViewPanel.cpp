@@ -9,7 +9,7 @@
 #include "Common.hpp"
 #include "Component.hpp"
 #include "FSHandler.hpp"
-#include "MainWindow.hpp"
+// #include "MainWindow.hpp"
 #include "MapEditor.hpp"
 #include "ViewPanel.hpp"
 
@@ -81,6 +81,12 @@ ViewPanel::ViewPanel(wxWindow* parent, wxCommandProcessor& cmdProc,
 {
 	m_ExplorerPanel->SetViewPanel(this);
 
+	// set the edit menu
+	wxMenu* editMenu = dynamic_cast<MapEditor*>(GetParent())->GetEditMenu();
+	editMenu->AppendSeparator();
+	editMenu->Append(MENU_TERRAINEDIT, _("Edit Terrain"), nullptr, _("Edit selected terrain"));
+	editMenu->Enable(MENU_TERRAINEDIT, false);
+
 	wxFileSystem fs;
 	m_Cursor[CURSOR_MOVE] = new wxCursor(ImageFromFS(fs, "editor.mpk:icons/move.png", wxBITMAP_TYPE_PNG));
 	m_Cursor[CURSOR_ROTATE] = new wxCursor(ImageFromFS(fs, "editor.mpk:icons/rotate.png", wxBITMAP_TYPE_PNG));
@@ -111,6 +117,7 @@ ViewPanel::ViewPanel(wxWindow* parent, wxCommandProcessor& cmdProc,
 	Bind(wxEVT_MENU, &ViewPanel::OnEditCopy, this, wxID_COPY);
 	Bind(wxEVT_MENU, &ViewPanel::OnEditPaste, this, wxID_PASTE);
 	Bind(wxEVT_MENU, &ViewPanel::OnEditDelete, this, wxID_DELETE);
+	Bind(wxEVT_MENU, &ViewPanel::OnMenuTerrainEdit, this, MENU_TERRAINEDIT);
 
 	Bind(wxEVT_MENU, &ViewPanel::OnToolPlayerStart, this, TOOL_PLAYERSTART);
 	Bind(wxEVT_MENU, &ViewPanel::OnToolLight, this, TOOL_LIGHT);
@@ -227,6 +234,8 @@ void ViewPanel::AddToSelection(irr::scene::ISceneNode* node, bool append)
 		// Check if selected node is an UpdatableTerrainSceneNode
 		if (m_Selection.size() == 1)
 		{
+			wxMenu* editMenu = dynamic_cast<MapEditor*>(GetParent())->GetEditMenu();
+
 			if (node->getType() == irr::scene::ESNT_TERRAIN)
 			{
 				UpdatableTerrainSceneNode* terrain = dynamic_cast<UpdatableTerrainSceneNode*>(node);
@@ -243,6 +252,9 @@ void ViewPanel::AddToSelection(irr::scene::ISceneNode* node, bool append)
 						// Store for potential later use
 						m_ActiveTerrain = terrain;
 					}
+
+					// update the edit menu
+					editMenu->Enable(MENU_TERRAINEDIT, true);
 				}
 			}
 			else
@@ -253,6 +265,8 @@ void ViewPanel::AddToSelection(irr::scene::ISceneNode* node, bool append)
 				{
 					m_TerrainEditor->setTerrain(nullptr);
 				}
+
+				editMenu->Enable(MENU_TERRAINEDIT, false);
 			}
 		}
 	}
@@ -298,6 +312,9 @@ void ViewPanel::ClearSelection(void)
 	{
 		m_TerrainEditor->setTerrain(nullptr);
 	}
+
+	wxMenu* editMenu = dynamic_cast<MapEditor*>(GetParent())->GetEditMenu();
+	editMenu->Enable(MENU_TERRAINEDIT, false);
 }
 
 void ViewPanel::DeleteSelection(void)
@@ -1015,7 +1032,8 @@ void ViewPanel::OnKey(wxKeyEvent& event)
 	}
 	else if (event.GetEventType() == wxEVT_KEY_UP)
 	{
-		switch (event.GetKeyCode())
+		// switch (event.GetKeyCode())
+		switch (event.GetUnicodeKey())
 		{
 		case WXK_ESCAPE:
 			if (m_FreeLook)
@@ -1031,8 +1049,10 @@ void ViewPanel::OnKey(wxKeyEvent& event)
 		case WXK_DELETE:
 			DeleteSelection();
 			break;
-		case 'T':
-		case 't':
+		// case 'T':
+		// case 't':
+		case wxT('T'):
+		case wxT('t'):
 			// Toggle terrain editing mode with 'T' key
 			if (m_ActiveTerrain) // Only allow if terrain is available
 			{
@@ -1277,6 +1297,11 @@ void ViewPanel::OnEditPaste(wxCommandEvent& event)
 void ViewPanel::OnEditDelete(wxCommandEvent& event)
 {
 	DeleteSelection();
+}
+
+void ViewPanel::OnMenuTerrainEdit(wxCommandEvent& event)
+{
+	SetTerrainEditingMode(!m_TerrainEditingMode);
 }
 
 void ViewPanel::OnMenuAlignTop(wxCommandEvent& event)
